@@ -1,4 +1,4 @@
-import fetch from 'node-fetch'
+import { apireonJson, apireonAbsUrl } from '../lib/apireon.js'
 
 const LIMITE_RESULTADOS = 4
 
@@ -8,27 +8,25 @@ function recortarTexto(text = '', max = 120) {
   return valor.length > max ? `${valor.slice(0, max - 1)}…` : valor
 }
 
-function construirLeyenda(elemento, indice, consulta) {
-  return `ִֶָ☾. 𝗪𝗮𝗹𝗹𝗽𝗮𝗽𝗲𝗿 ִֶָ☾. *${indice + 1}/4*
+function construirLeyenda(elemento, indice, total, consulta) {
+  return `ִֶָ☾. 𝗪𝗮𝗹𝗹𝗽𝗮𝗽𝗲𝗿 ִֶָ☾. *${indice + 1}/${total}*
 
  𓍯  *Búsqueda:* ${consulta}
- 𓍯  *Descripción:* ${recortarTexto(elemento.description, 140) || 'Sin descripción'}
- 𓍯  *Autor:* ${recortarTexto(elemento.author, 50) || 'Desconocido'}
- 𓍯  *Rating:* ${elemento.rating ?? '—'}
- 𓍯  *Descargas:* ${Number(elemento.downloads || 0).toLocaleString()}
- 𓍯  *Favoritos:* ${Number(elemento.favorites || 0).toLocaleString()}`
+ 𓍯  *Título:* ${recortarTexto(elemento.title, 120) || 'Wallpaper HD'}
+ 𓍯  *Autor:* ${recortarTexto(elemento.author, 50) || 'Velirius Gallery'}
+ 𓍯  *Resolución:* ${elemento.width && elemento.height ? `${elemento.width}x${elemento.height}` : 'HD'}`
 }
 
-async function enviarWallpaper(conn, chat, elemento, leyenda, quoted) {
+async function enviarWallpaper(conn, chat, urlDescarga, leyenda, quoted) {
   try {
     await conn.sendMessage(chat, {
-      image: { url: elemento.download },
+      image: { url: urlDescarga },
       caption: leyenda,
       contextInfo: { ...rcanal?.contextInfo }
     }, { quoted })
     return true
   } catch {
-    const respuesta = await fetch(elemento.download)
+    const respuesta = await fetch(urlDescarga)
     if (!respuesta.ok) throw new Error('No se pudo descargar la imagen.')
     const bufer = Buffer.from(await respuesta.arrayBuffer())
     await conn.sendMessage(chat, {
@@ -44,44 +42,46 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
   try {
     if (!text?.trim()) {
       return conn.sendMessage(m.chat, {
-        text: `ִֶָ☾. Ingresa qué wallpaper buscar.\n\n> *Ejemplo:*\n${usedPrefix + command} pain`,
+        text: `ִֶָ☾. Ingresa qué wallpaper buscar.\n\n> *Ejemplo:*\n${usedPrefix + command} cyberpunk city`,
         contextInfo: { ...rcanal?.contextInfo }
       }, { quoted: m })
     }
 
     const consulta = text.trim()
-    const urlBusqueda = `https://api.delirius.online/search/wallcraft?query=${encodeURIComponent(consulta)}`
-    const resBusqueda = await fetch(urlBusqueda).then(r => r.json())
+    await m.react('⏳').catch(() => {})
 
-    if (!resBusqueda?.status || !Array.isArray(resBusqueda.data) || !resBusqueda.data.length) {
-      throw '[❗] No se encontraron wallpapers para esa búsqueda.'
-    }
+    const { result, baseUrl } = await apireonJson('/search/pinterest', {
+      query: `${consulta} wallpaper hd`,
+      limit: 12
+    })
 
-    const resultados = resBusqueda.data
-      .filter(elemento => elemento?.download)
+    const pines = Array.isArray(result?.pins) ? result.pins : []
+    const resultados = pines
+      .map(p => ({
+        ...p,
+        download: apireonAbsUrl(p.image || p.thumbnail || '', baseUrl)
+      }))
+      .filter(p => p.download)
       .slice(0, LIMITE_RESULTADOS)
 
     if (!resultados.length) {
-      throw '[❗] No hay imágenes disponibles para descargar.'
+      throw '[❗] No se encontraron wallpapers para esa búsqueda.'
     }
-
-   
 
     for (let i = 0; i < resultados.length; i++) {
       const elemento = resultados[i]
-      const leyenda = construirLeyenda(elemento, i, consulta)
+      const leyenda = construirLeyenda(elemento, i, resultados.length, consulta)
       try {
-        await enviarWallpaper(conn, m.chat, elemento, leyenda, m)
+        await enviarWallpaper(conn, m.chat, elemento.download, leyenda, m)
       } catch (err) {
         console.error(`Error enviando wall ${i + 1}:`, err)
-        await conn.sendMessage(m.chat, {
-          text: `[❗] No se pudo enviar el wallpaper *${i + 1}*.\n 𓍯  *Descripción:* ${recortarTexto(elemento.description, 100)}`,
-          contextInfo: { ...rcanal?.contextInfo }
-        }, { quoted: m })
       }
     }
+
+    await m.react('✅').catch(() => {})
   } catch (e) {
-    console.error('Error en wallcraft:', e)
+    console.error('Error en wallpaper:', e)
+    await m.react('❌').catch(() => {})
     return conn.sendMessage(m.chat, {
       text: typeof e === 'string' ? e : `[❗] Error al buscar wallpapers.\n\n${e.message}`,
       contextInfo: { ...rcanal?.contextInfo }
@@ -91,6 +91,6 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
 
 handler.help = ['wall <búsqueda> → 4 wallpapers con descripción']
 handler.tags = ['descargas', 'imagenes']
-handler.command = ['wall', 'wallcraft', 'wallpaper', 'fondo']
+handler.command = ['wall', 'wallcraft', 'wallpaper', 'wallpapers', 'fondo']
 
 export default handler

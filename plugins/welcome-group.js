@@ -67,7 +67,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin, isBotAdmin }
         `╰➺ *Hora:* ${new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}\n` +
         `│\n` +
         `╰➺ *Bienvenido al grupo!*\n` +
-        `> PAIN COMMUNITY`
+        `> VELIRIUS BOT`
       
       const vistaPreviaDespedida = global.db.data.bienvenidas[m.chat].goodbyeMsg || 
         `╭─「 *ADIOS* 」─╮\n` +
@@ -80,7 +80,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin, isBotAdmin }
         `╰➺ *Hora:* ${new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}\n` +
         `│\n` +
         `╰➺ *¡Que tengas un buen día!*\n` +
-        `> PAIN COMMUNITY`
+        `> VELIRIUS BOT`
       
       await conn.sendMessage(m.chat, {
         text: `《✧》*VISTA PREVIA ACTIVADA*\n\n*Mensaje de bienvenida:*\n${vistaPreviaBienvenida}\n\n*Mensaje de despedida:*\n${vistaPreviaDespedida}\n\n*Nota:* Las imágenes se mostrarán automáticamente con la foto del grupo.\n\n> Para personalizar las bienvenidas y despedidas usa el comando ${usedPrefix}welcome`
@@ -95,7 +95,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin, isBotAdmin }
       texto += `│\n`
       texto += `╰➺ *Estado:* Desactivado\n`
       texto += `╰➺ *Usuario:* @${m.sender.split('@')[0]}\n`
-      texto += `\n> PAIN COMMUNITY`
+      texto += `\n> VELIRIUS BOT`
       
       return conn.sendMessage(m.chat, {
         text: texto,
@@ -230,7 +230,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin, isBotAdmin }
           `╰➺ *Hora:* ${new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}\n` +
           `│\n` +
           `╰➺ *Bienvenido al grupo!*\n` +
-          `> PAIN COMMUNITY`
+          `> VELIRIUS BOT`
         
         const mensajeBienvenidaFinal = welcomeMsg
           .replace(/\${user}/g, await conn.getName(m.sender) || 'Usuario')
@@ -279,7 +279,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin, isBotAdmin }
           `╰➺ *Hora:* ${new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}\n` +
           `│\n` +
           `╰➺ *¡Que tengas un buen día!*\n` +
-          `> PAIN COMMUNITY`
+          `> VELIRIUS BOT`
         
         const mensajeDespedidaFinal = goodbyeMsg
           .replace(/\${user}/g, await conn.getName(m.sender) || 'Usuario')
@@ -329,7 +329,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin, isBotAdmin }
       texto += `╰➺ *Imagen Despedida:* ${configuracion.goodbyeImg || 'Foto del grupo'}\n`
       texto += `│\n`
       texto += `╰➺ *Usuario:* @${m.sender.split('@')[0]}\n`
-      texto += `\n> PAIN COMMUNITY`
+      texto += `\n> VELIRIUS BOT`
       
       return conn.sendMessage(m.chat, {
         text: texto,
@@ -398,7 +398,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin, isBotAdmin }
         `╰➺ *Hora:* ${new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}\n` +
         `│\n` +
         `╰➺ *Bienvenido al grupo!*\n` +
-        `> PAIN COMMUNITY`
+        `> VELIRIUS BOT`
       
       const mensajePruebaFinal = mensajePrueba
         .replace(/\${user}/g, await conn.getName(m.sender) || 'Usuario')
@@ -433,7 +433,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin, isBotAdmin }
       
     } else {
       return conn.sendMessage(m.chat, {
-        text: `《✧》*SISTEMA DE BIENVENIDAS - PAIN BOT*\n\n*COMANDOS PRINCIPALES:*\n• ${usedPrefix}welcome on - Activar sistema\n• ${usedPrefix}welcome off - Desactivar sistema\n• ${usedPrefix}welcome status - Ver estado\n• ${usedPrefix}welcome reset - Resetear configuración\n• ${usedPrefix}welcome debug - Debug configuración\n• ${usedPrefix}welcome testimg - Probar imagen personalizada\n\n*PERSONALIZACIÓN (Solo cuando está ACTIVADO):*\n• ${usedPrefix}welcome msg welcome <mensaje> - Mensaje bienvenida\n• ${usedPrefix}welcome msg goodbye <mensaje> - Mensaje despedida\n• ${usedPrefix}welcome img welcome <url> - Imagen bienvenida\n• ${usedPrefix}welcome img goodbye <url> - Imagen despedida\n\n*VARIABLES DISPONIBLES:*\n• \${user} - Nombre del usuario (ej: Juan)\n• \${participant} - Usuario con @ (ej: @123456789)\n• \${group} - Nombre del grupo (ej: Grupo de amigos)\n• \${memberCount} - Número de miembros (ej: 25)\n• \${date} - Fecha actual (ej: 29 de agosto de 2025)\n• \${time} - Hora actual (ej: 18:50)\n\n*EJEMPLOS DE USO:*\n• ${usedPrefix}welcome msg welcome Hola \${user}, bienvenido a \${group}!\n• ${usedPrefix}welcome msg goodbye Adios \${user}, gracias por estar en \${group}\n\n*FUNCIONA AUTOMÁTICAMENTE:*\n• Cuando alguien entra al grupo\n• Cuando alguien sale del grupo\n\n*NOTA:* Para personalizar mensajes e imágenes, primero activa el sistema con .welcome on`
+        text: `《✧》*SISTEMA DE BIENVENIDAS - VELIRIUS BOT*\n\n*COMANDOS PRINCIPALES:*\n• ${usedPrefix}welcome on - Activar sistema\n• ${usedPrefix}welcome off - Desactivar sistema\n• ${usedPrefix}welcome status - Ver estado\n• ${usedPrefix}welcome reset - Resetear configuración\n• ${usedPrefix}welcome debug - Debug configuración\n• ${usedPrefix}welcome testimg - Probar imagen personalizada\n\n*PERSONALIZACIÓN (Solo cuando está ACTIVADO):*\n• ${usedPrefix}welcome msg welcome <mensaje> - Mensaje bienvenida\n• ${usedPrefix}welcome msg goodbye <mensaje> - Mensaje despedida\n• ${usedPrefix}welcome img welcome <url> - Imagen bienvenida\n• ${usedPrefix}welcome img goodbye <url> - Imagen despedida\n\n*VARIABLES DISPONIBLES:*\n• \${user} - Nombre del usuario (ej: Juan)\n• \${participant} - Usuario con @ (ej: @123456789)\n• \${group} - Nombre del grupo (ej: Grupo de amigos)\n• \${memberCount} - Número de miembros (ej: 25)\n• \${date} - Fecha actual (ej: 29 de agosto de 2025)\n• \${time} - Hora actual (ej: 18:50)\n\n*EJEMPLOS DE USO:*\n• ${usedPrefix}welcome msg welcome Hola \${user}, bienvenido a \${group}!\n• ${usedPrefix}welcome msg goodbye Adios \${user}, gracias por estar en \${group}\n\n*FUNCIONA AUTOMÁTICAMENTE:*\n• Cuando alguien entra al grupo\n• Cuando alguien sale del grupo\n\n*NOTA:* Para personalizar mensajes e imágenes, primero activa el sistema con .welcome on`
       }, { quoted: m })
     }
     

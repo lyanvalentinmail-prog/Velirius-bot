@@ -1,6 +1,7 @@
 import sharp from '../lib/sharp.js'
 import fetch from 'node-fetch'
 import { decodeImageToPng, sharpMetadata, sharpResizePng } from '../lib/image-buffer.js'
+import { apireonBuffer, bufferToDataUrl } from '../lib/apireon.js'
 
 
 
@@ -521,9 +522,28 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     const medio = await objetivo.download()
     const foto = await cargarBuferImagen(medio, mime)
 
-    await conn.sendMessage(m.chat, { react: { text: '', key: m.key } }).catch(() => {})
+    await conn.sendMessage(m.chat, { react: { text: '🏳️‍🌈', key: m.key } }).catch(() => {})
 
-    const resultado = await aplicarFiltroGay(foto, textoFinal)
+    let resultado = null
+    if (!textoFinal || /^gaycard$/i.test(command)) {
+      try {
+        const endpoint = /^gaycard$/i.test(command) ? '/canvas/gaycard' : '/canvas/gay'
+        const { buffer } = await apireonBuffer(
+          endpoint,
+          {
+            image: bufferToDataUrl(foto, 'image/png'),
+            ...(textoFinal ? { name: textoFinal } : {})
+          },
+          { method: 'POST' }
+        )
+        if (buffer?.length) resultado = buffer
+      } catch {}
+    }
+
+    if (!resultado) {
+      resultado = await aplicarFiltroGay(foto, textoFinal)
+    }
+
     await conn.sendFile(m.chat, resultado, 'imgay.jpg', '', m, null, global.rcanal)
   } catch (e) {
     console.error('[imgay]', e)

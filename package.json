@@ -1,7 +1,7 @@
 {
-  "name": "Pain-Bot",
+  "name": "velirius-bot",
   "version": "1.0.0",
-  "description": "Multi Device",
+  "description": "Velirius bot - WhatsApp Multi Device",
   "main": "index.js",
   "type": "module",
   "directories": {
@@ -18,16 +18,16 @@
     "sync:chars:reset": "node scripts/sync-characters-catalog.js --reset --batch 200 --concurrency 5 --delay 200",
     "enrich:chars:combat": "node scripts/enrich-characters-combat.js"
   },
-  "homepage": "https://github.com/nexusday/Pain-Bot",
+  "homepage": "https://github.com/lyanvalentinmail-prog/Velirius-bot",
   "author": {
-    "name": "Sunkovv"
+    "name": "Velirius"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nexusday/Pain-Bot.git"
+    "url": "git+https://github.com/lyanvalentinmail-prog/Velirius-bot.git"
   },
   "bugs": {
-    "url": "https://github.com/nexusday/Pain-Bot/issues"
+    "url": "https://github.com/lyanvalentinmail-prog/Velirius-bot/issues"
   },
   "license": "GPL-3.0-or-later",
   "dependencies": {

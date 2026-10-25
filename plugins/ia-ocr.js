@@ -4,6 +4,7 @@ import { existsSync } from 'fs'
 import sharp from '../lib/sharp.js'
 import { createWorker } from 'tesseract.js'
 import { webp2png } from '../lib/webp2mp4.js'
+import { apireonJson, bufferToDataUrl } from '../lib/apireon.js'
 
 const MAPA_IDIOMAS = {
   es: 'spa',
@@ -212,17 +213,36 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     const medio = await objetivo.download()
     if (!medio?.length) throw new Error('No se pudo descargar la imagen')
 
-    const dirTmp = join(process.cwd(), 'tmp')
-    if (!existsSync(dirTmp)) await mkdir(dirTmp, { recursive: true })
+    let text = ''
+    try {
+      const pngVision = await sharp(medio).png().toBuffer()
+      const { result } = await apireonJson(
+        '/ai/gemini',
+        {
+          prompt: 'Extrae ÚNICAMENTE el texto visible en esta imagen, respetando saltos de línea. Si no hay texto legible, responde exactamente: SIN_TEXTO.',
+          image: bufferToDataUrl(pngVision, 'image/png')
+        },
+        { method: 'POST', timeoutMs: 35000 }
+      )
+      const textoIa = String(result?.answer || result?.response || result?.text || '').trim()
+      if (textoIa && !/^sin[_\s-]?texto$/i.test(textoIa)) {
+        text = textoIa
+      }
+    } catch {}
 
-    const buferImagen = await aBuferImagen(medio, mime)
-    rutaTmp = join(dirTmp, `ocr_${Date.now()}.png`)
-    await writeFile(rutaTmp, buferImagen)
+    if (!text) {
+      const dirTmp = join(process.cwd(), 'tmp')
+      if (!existsSync(dirTmp)) await mkdir(dirTmp, { recursive: true })
 
-    const idioma = resolverIdioma(args)
-    const trabajador = await obtenerTrabajador(idioma)
-    const { data } = await trabajador.recognize(rutaTmp)
-    const text = extraerTextoLimpio(data || {})
+      const buferImagen = await aBuferImagen(medio, mime)
+      rutaTmp = join(dirTmp, `ocr_${Date.now()}.png`)
+      await writeFile(rutaTmp, buferImagen)
+
+      const idioma = resolverIdioma(args)
+      const trabajador = await obtenerTrabajador(idioma)
+      const { data } = await trabajador.recognize(rutaTmp)
+      text = extraerTextoLimpio(data || {})
+    }
 
     if (!text) {
       return conn.sendMessage(m.chat, {

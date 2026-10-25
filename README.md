@@ -1,36 +1,19 @@
-# Pain Bot
+# Velirius bot
 
-**By Sunkovv**
+Bot de WhatsApp multi-dispositivo basado en **Baileys** e impulsado por **Apireon REST API**. Incluye descargas multimedia, inteligencia artificial multimodal, administración avanzada de grupos, economía RPG, canvas/stickers, búsquedas y utilidades.
 
-<p align="center">
-  <a href="https://chat.whatsapp.com/DlkiS0Xmqby3Rc8EBlL7k7">
-    <img src="https://img.shields.io/badge/Comunidad-WhatsApp-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" alt="Comunidad de WhatsApp">
-  </a>
-  <a href="https://clientes.nexcodea.com/">
-    <img src="https://img.shields.io/badge/Hosting%20para%20bot-barato-111827?style=for-the-badge&logo=icloud&logoColor=white" alt="Hosting para bot barato">
-  </a>
-</p>
-
-- **Comunidad de WhatsApp:** [unirse al grupo](https://chat.whatsapp.com/DlkiS0Xmqby3Rc8EBlL7k7)
-- **Hosting para bot barato:** [clientes.nexcodea.com](https://clientes.nexcodea.com/)
-
-Bot de WhatsApp multi-dispositivo (Baileys). Descargas, IA, administración de grupos, RPG, stickers y más.
-
-El repositorio **incluye `node_modules`**. No es necesario ejecutar `npm install`: clona y arranca.
-
-```
-git clone https://github.com/nexusday/pain-bot.git
-cd pain-bot
+```bash
+git clone https://github.com/lyanvalentinmail-prog/Velirius-bot.git
+cd Velirius-bot
 npm start
 ```
 
-| | |
+| Propiedad | Detalle |
 |---|---|
-| **Repositorio** | [github.com/nexusday/pain-bot](https://github.com/nexusday/pain-bot) |
-| **Comunidad** | [Grupo de WhatsApp](https://chat.whatsapp.com/DlkiS0Xmqby3Rc8EBlL7k7) |
-| **Hosting** | [NexCodea — hosting para bot barato](https://clientes.nexcodea.com/) |
+| **Nombre** | Velirius bot |
+| **Repositorio** | [github.com/lyanvalentinmail-prog/Velirius-bot](https://github.com/lyanvalentinmail-prog/Velirius-bot) |
+| **API Oficial** | [Apireon API](https://apireon-36er-git-arena-fd508da9-apireon-lyanvalentinmail3-4607.vercel.app/home) (`https://apireon-36er.vercel.app/home`) |
 | **Runtime** | Node.js 20+ |
-| **Dependencias** | Incluidas en el repo (`node_modules`) |
 | **Licencia** | GPL-3.0-or-later |
 
 ---
@@ -41,13 +24,10 @@ npm start
 2. [Inicio rápido](#inicio-rápido)
 3. [Termux](#termux)
 4. [Vincular cuenta](#vincular-cuenta)
-5. [PM2 en Termux](#pm2-en-termux)
+5. [PM2](#pm2)
 6. [Configuración](#configuración)
-7. [Uso](#uso)
+7. [Comandos con Apireon API](#comandos-con-apireon-api)
 8. [Estructura](#estructura)
-9. [Actualizar](#actualizar)
-10. [Problemas frecuentes](#problemas-frecuentes)
-11. [Aviso y créditos](#aviso-y-créditos)
 
 ---
 
@@ -57,10 +37,7 @@ npm start
 |------------|---------|
 | Node.js | 20 LTS o superior |
 | Git | versión reciente |
-| FFmpeg | recomendado (audio, video, stickers) |
-| Espacio | el clone es pesado por `node_modules` (~cientos de MB) |
-
-No hace falta `npm` salvo que quieras reinstalar dependencias a mano.
+| FFmpeg | recomendado (audio, video, stickers animados y reacciones) |
 
 ---
 
@@ -69,12 +46,11 @@ No hace falta `npm` salvo que quieras reinstalar dependencias a mano.
 Windows, Linux o macOS:
 
 ```bash
-git clone https://github.com/nexusday/pain-bot.git
-cd pain-bot
+git clone https://github.com/lyanvalentinmail-prog/Velirius-bot.git
+cd Velirius-bot
+npm install
 npm start
 ```
-
-Listo. Las dependencias ya vienen en el proyecto.
 
 En Debian/Ubuntu, si te falta FFmpeg:
 
@@ -83,250 +59,105 @@ sudo apt update
 sudo apt install -y ffmpeg git
 ```
 
-Solo si algo falla al arrancar (módulos rotos o incompletos):
-
-```bash
-npm install
-# o: npm install --legacy-peer-deps
-```
-
 ---
 
 ## Termux
 
-### Preparar el entorno
-
-Termux desde [F-Droid](https://f-droid.org/packages/com.termux/). Luego:
+Instala Termux desde [F-Droid](https://f-droid.org/packages/com.termux/) y ejecuta:
 
 ```bash
 termux-setup-storage
 pkg update -y && pkg upgrade -y
 pkg install -y nodejs-lts git ffmpeg
-```
-
-Verifica:
-
-```bash
-node -v && git --version
-```
-
-### Clonar y arrancar
-
-**No hace falta `npm install`.** Con clonar basta:
-
-```bash
 cd ~
-git clone https://github.com/nexusday/pain-bot.git
-cd pain-bot
-npm start
-```
-
-Si por algún error de módulos necesitas reinstalar (opcional):
-
-```bash
+git clone https://github.com/lyanvalentinmail-prog/Velirius-bot.git
+cd Velirius-bot
 npm install --no-bin-links
+npm start
 ```
 
 ---
 
 ## Vincular cuenta
 
-El método principal de vinculación es por **código de 8 dígitos** (pairing code). No hace falta escanear QR.
+El método principal de vinculación es por **código de 8 dígitos** (pairing code) o código QR.
 
-### Arranque
+1. Inicia el bot:
+   ```bash
+   cd Velirius-bot
+   npm start
+   ```
+2. Cuando pregunte el método de sesión, escribe `code` e ingresa el número de WhatsApp con código de país (sin `+` ni espacios).
+3. En WhatsApp: **Ajustes → Dispositivos vinculados → Vincular con número de teléfono** e introduce el código de 8 caracteres.
 
-```bash
-cd pain-bot   # o: cd ~/pain-bot en Termux
-npm start
-```
-
-### Pasos en la terminal
-
-1. Cuando pregunte el método de sesión, escribe:
-
-```text
-code
-```
-
-2. Ingresa el número del WhatsApp que usará el bot, **con código de país y sin símbolos**:
-
-```text
-51999999999
-```
-
-3. La terminal mostrará un código de **8 caracteres** (ej. `ABCD-EFGH`).
-
-### Pasos en WhatsApp (teléfono)
-
-1. Abre WhatsApp en el dispositivo del número indicado  
-2. **Ajustes → Dispositivos vinculados → Vincular un dispositivo**  
-3. Elige **Vincular con número de teléfono**  
-4. Escribe el código de 8 dígitos que salió en la terminal  
-
-La sesión se guarda en `Sessions/`. Conserva esa carpeta si no quieres volver a vincular.
-
-> Tip: la primera vinculación hazla con `npm start` en primer plano para copiar el código con calma. Después puedes pasar a PM2.
-
-Detener el proceso: `Ctrl + C`.
+La sesión se guarda en `Sessions/`.
 
 ---
 
-## PM2 en Termux
+## PM2
 
-Para mantener el bot en segundo plano sin dejar la terminal abierta:
+Para mantener **Velirius bot** activo en segundo plano:
 
 ```bash
 npm install -g pm2
-cd ~/pain-bot
-```
-
-**Importante:** vincula primero con `npm start` y el código. Cuando la sesión ya esté en `Sessions/`:
-
-```bash
-pm2 start index.js --name painbot
+cd ~/Velirius-bot
+pm2 start index.js --name velirius-bot
 pm2 save
 ```
 
 | Comando | Acción |
 |---------|--------|
 | `pm2 status` | Estado del proceso |
-| `pm2 logs painbot` | Logs en vivo |
-| `pm2 restart painbot` | Reiniciar |
-| `pm2 stop painbot` | Detener |
-| `pm2 delete painbot` | Eliminar de PM2 |
-
-Recuperar PM2 al reabrir Termux:
-
-```bash
-pm2 startup
-pm2 save
-```
-
-Desactiva la optimización de batería para Termux en Android; si no, el sistema puede matar el proceso.
+| `pm2 logs velirius-bot` | Logs en vivo |
+| `pm2 restart velirius-bot` | Reiniciar |
+| `pm2 stop velirius-bot` | Detener |
+| `pm2 delete velirius-bot` | Eliminar de PM2 |
 
 ---
 
 ## Configuración
 
-Edita `config.js` (mejor con el bot detenido al cambiar owners):
+Edita `config.js`:
 
 | Variable | Descripción |
 |----------|-------------|
-| `global.owner` | Owners: `['codigoPaisNumero', 'Nombre', true]` |
-| `global.namebot` | Nombre del bot |
-| `global.packname` | Nombre en stickers |
-| `global.author` | Autor |
+| `global.owner` | Propietarios: `['codigoPaisNumero', 'Nombre', true]` |
+| `global.namebot` | Nombre del bot (`'Velirius bot'`) |
+| `global.packname` | Nombre por defecto en stickers (`'Velirius bot'`) |
+| `global.author` | Autor por defecto en stickers |
 | `global.moneda` | Moneda del RPG |
-| `global.APIs` | APIs externas |
-
-```js
-global.owner = [
-  ['51999999999', 'TuNombre', true],
-]
-```
-
-Sin `+`, espacios ni guiones en el número.
+| `global.APIs` | Configuración de **Apireon API** (`lib/apireon.js`) |
 
 ---
 
-## Uso
+## Comandos con Apireon API
 
 Prefijo por defecto: `.`
 
-```text
-.menu
-.menu2
-.play nombre de canción
-.video búsqueda o enlace
-.ia mensaje
-.s
-```
-
-Más comandos en `.menu` / `.menu2` dentro del chat.
+- **Menú interactivo:** `.menu` / `.menu2`
+- **Inteligencia Artificial (`/ai/*`):** `.chatgpt`, `.gemini`, `.claude`, `.deepseek`, `.grok`, `.copilot`, `.kora`, `.replia`, `.animg` (`nano-banana`), `.ocr`
+- **Descargas (`/downloader/*`):** `.play`, `.play2`, `.video` / `.ytmp4`, `.tiktok` / `.tt`, `.ig`, `.fb`, `.spotify`, `.sc`, `.apk` / `.aptoide`
+- **Búsquedas (`/search/*`):** `.google`, `.wiki`, `.yt`, `.igs`, `.pinterest`, `.imagen`, `.wall`, `.ly` / `.lyrics`, `.bsticker` / `.stickerly`, `.playstore`, `.appstore`, `.mediafire`, `.git`
+- **Anime & Reacciones (`/anime/*`, `/reactions/*`):** `.anime`, `.pokedex`, `.waifu`, `.waifu2`, `.neko`, `.animequote`, `.hug`, `.kiss`, `.slap`, `.pat`, `.cuddle`, `.dance`, `.happy`, `.sad`, `.angry`, `.reir`
+- **Canvas, Stickers & Herramientas (`/canvas/*`, `/tools/*`, `/shorten/*`, `/random/*`):** `.st` / `.attp` / `.ttp`, `.brat` / `.bratvideo`, `.sw` / `.qc` / `.iqc`, `.imgay`, `.sgay`, `.ship`, `.sebusca`, `.invert`, `.qr`, `.traduc`, `.clima`, `.calc`, `.divisa`, `.acortar`, `.ping`, `.8ball`, `.chiste`, `.dato`
 
 ---
 
 ## Estructura
 
 ```text
-pain-bot/
-├── config.js         Configuración global
-├── index.js          Entrada
-├── main.js           Conexión y ciclo
-├── handler.js        Mensajes y comandos
-├── plugins/          Comandos (hot reload)
-├── lib/              Utilidades y modos
-├── node_modules/     Dependencias (incluidas en el repo)
-├── storage/          Datos persistentes
-├── Sessions/         Sesión de WhatsApp (no versionar)
-└── package.json
+Velirius-bot/
+├── config.js         Configuración global de Velirius bot y Apireon
+├── index.js          Punto de entrada y supervisor
+├── main.js           Conexión Baileys MD y gestor de plugins
+├── handler.js        Despachador de mensajes y comandos
+├── lib/apireon.js    Cliente central para Apireon REST API
+├── lib/              Utilidades, modos IA, tableros y menús
+├── plugins/          Comandos recargables en caliente
+├── storage/          Banner oficial y recursos persistentes
+└── Sessions/         Sesión de WhatsApp (no versionar)
 ```
-
-Los plugins suelen recargarse al guardar. Si no aparece uno nuevo, reinicia con `npm start` o `pm2 restart painbot`.
 
 ---
 
-## Actualizar
-
-```bash
-cd pain-bot
-git pull origin main
-npm start
-# o: pm2 restart painbot
-```
-
-No hace falta `npm install` tras el pull mientras `node_modules` venga actualizado en el repo.
-
-Haz backup de `Sessions/` y de tu `config.js` antes de un `git pull` si tocaste owners o APIs.
-
----
-
-## Problemas frecuentes
-
-**No sale el código de vinculación**  
-Escribe `code` (no `qr`) cuando pregunte el método. Cierra otras instancias del bot y vuelve a `npm start`.
-
-**El código expira o no se acepta**  
-Pide uno nuevo reiniciando. En WhatsApp usa *Vincular con número de teléfono*, no el escáner de cámara.
-
-**Error de módulos / “Cannot find module”**  
-El repo ya trae `node_modules`. Si falta o está dañado:
-
-```bash
-# PC
-npm install
-
-# Termux
-npm install --no-bin-links
-```
-**Sesión cerrada / logged out**
-
-```bash
-rm -rf Sessions
-npm start
-```
-
-Vuelve a vincular con el código de 8 dígitos.
-
-**El bot no responde en un grupo**  
-Revisa si está desactivado, silenciado o si faltan permisos de admin para comandos de grupo.
-
-**Termux se cierra solo**  
-Ajustes de Android → sin optimización de batería para Termux.
-
----
-
-## Aviso y créditos
-
-Uso personal o educativo. Respeta las [políticas de WhatsApp](https://www.whatsapp.com/legal) y la ley de tu país. El uso indebido de automatización puede banear la cuenta vinculada; conviene un número secundario.
-
-| | |
-|---|---|
-| **Proyecto** | Pain Bot |
-| **By** | Sunkovv |
-| **Núcleo** | [Baileys](https://github.com/WhiskeySockets/Baileys) (WhiskeySockets) |
-| **Repositorio** | https://github.com/nexusday/pain-bot.git |
-
----
-
-*Pain Bot — By Sunkovv*
+*Velirius bot — Powered by Apireon API*

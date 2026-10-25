@@ -1,107 +1,100 @@
+import { apireonJson, apireonAbsUrl } from '../lib/apireon.js'
+
+function formatearNumero(num) {
+  const n = Number(num) || 0
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
+  return String(n)
+}
 
 let handler = async (m, { conn, args, usedPrefix, command }) => {
   try {
     if (!args[0]) {
       return conn.sendMessage(m.chat, {
-        text: `[❗] Uso incorrecto\n\n> *Ejemplo:* ${usedPrefix}${command} Sunkovvz`,
-        contextInfo: {
-          ...rcanal.contextInfo
-        }
+        text: `[❗] Uso incorrecto\n\n> *Ejemplo:* ${usedPrefix}${command} khaby.lame`,
+        contextInfo: { ...rcanal?.contextInfo }
       }, { quoted: m })
     }
 
-    let nombreUsuario = args[0].trim()
-        
-    if (nombreUsuario.startsWith('@')) {
-      nombreUsuario = nombreUsuario.slice(1)
-    }
-
-    if (nombreUsuario.length < 1) {
+    const nombreUsuario = args[0].trim().replace(/^@/, '')
+    if (!nombreUsuario) {
       return conn.sendMessage(m.chat, {
         text: '[❗] Username inválido.',
-        contextInfo: {
-          ...rcanal.contextInfo
-        }
+        contextInfo: { ...rcanal?.contextInfo }
       }, { quoted: m })
     }
 
+    await m.react('⏳').catch(() => {})
 
-    const urlApi = `https://bytebazz-api.koyeb.app/api/stalker/tiktok2?username=${encodeURIComponent(nombreUsuario)}&apikey=8jkh5icbf05`
-    const respuestaApi = await fetch(urlApi)
-    const datos = await respuestaApi.json()
+    const { result, baseUrl } = await apireonJson('/search/tiktok', {
+      query: `@${nombreUsuario}`,
+      limit: 10
+    })
 
-    if (!datos.status || !datos.resultado) {
-      throw new Error('Perfil no encontrado o API no disponible')
+    const videos = Array.isArray(result?.videos) ? result.videos : []
+    if (!videos.length) {
+      throw new Error('No se encontraron videos públicos para ese usuario en TikTok.')
     }
 
-    const perfil = datos.resultado
+    const coincidenciaExacta = videos.filter(
+      v => String(v?.author?.username || '').toLowerCase() === nombreUsuario.toLowerCase()
+    )
+    const muestra = coincidenciaExacta.length ? coincidenciaExacta : videos
+    const autor = muestra[0]?.author || {}
+    const avatar = apireonAbsUrl(autor.avatar || muestra[0]?.cover || '', baseUrl)
 
-    
-    const formatearNumero = (num) => {
-      if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
-      if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
-      return num.toString()
-    }
+    const totalVistas = muestra.reduce((acc, v) => acc + (Number(v?.stats?.views) || 0), 0)
+    const totalLikes = muestra.reduce((acc, v) => acc + (Number(v?.stats?.likes) || 0), 0)
+    const totalComentarios = muestra.reduce((acc, v) => acc + (Number(v?.stats?.comments) || 0), 0)
+    const videoDestacado = muestra[0]
 
-    const textoInfo = `
- 🌴 𝗧𝗜𝗞𝗧𝗢𝗞 𝗣𝗥𝗢𝗙𝗜𝗟𝗘 🌴
+    const textoInfo =
+      `🌴 *TIKTOK PROFILE — VELIRIUS BOT* 🌴\n\n` +
+      `> *Nombre:* ${autor.nickname || nombreUsuario}\n` +
+      `> *Usuario:* @${autor.username || nombreUsuario}\n` +
+      `> *Perfil:* https://www.tiktok.com/@${encodeURIComponent(autor.username || nombreUsuario)}\n` +
+      `> *Videos analizados:* ${muestra.length}\n` +
+      `> *Vistas recientes:* ${formatearNumero(totalVistas)}\n` +
+      `> *Likes recientes:* ${formatearNumero(totalLikes)}\n` +
+      `> *Comentarios recientes:* ${formatearNumero(totalComentarios)}\n` +
+      (videoDestacado?.title ? `> *Último / Destacado:* ${String(videoDestacado.title).slice(0, 140)}\n` : '') +
+      (videoDestacado?.url ? `> *Video:* ${videoDestacado.url}` : '')
 
-> *Nombre:* ${perfil.apodo || 'N/A'}
-> *Usuario:* @${perfil.nombre_usuario || nombreUsuario}
-> *Seguidores:* ${perfil.seguidores ? formatearNumero(perfil.seguidores) : 'N/A'}
-> *Siguiendo:* ${perfil.siguiendo ? formatearNumero(perfil.siguiendo) : 'N/A'}
-> *Likes:* ${perfil.me_gusta ? formatearNumero(perfil.me_gusta) : 'N/A'}
-> *Videos:* ${perfil.videos ? formatearNumero(perfil.videos) : 'N/A'}
-> *Verificado:* ${perfil.verificado ? 'Sí' : 'No'}
-> *Privada:* ${perfil.cuenta_privada ? 'Sí' : 'No'}
-> *Biografía:* ${perfil.biografia || 'Sin biografía'}`
-
-
-    if (perfil.avatar) {
+    if (avatar) {
       try {
         await conn.sendMessage(m.chat, {
-          image: { url: perfil.avatar },
-          caption: textoInfo,
+          image: { url: avatar },
+          caption: textoInfo.trim(),
           contextInfo: {
-            ...rcanal.contextInfo,
+            ...rcanal?.contextInfo,
             mentionedJid: [m.sender]
           }
         }, { quoted: m })
-      } catch (error) {
-        console.log('Error al enviar imagen:', error.message)
-        
-        await conn.sendMessage(m.chat, {
-          text: textoInfo,
-          contextInfo: {
-            ...rcanal.contextInfo,
-            mentionedJid: [m.sender]
-          }
-        }, { quoted: m })
-      }
-    } else {
-      
-      await conn.sendMessage(m.chat, {
-        text: textoInfo,
-        contextInfo: {
-          ...rcanal.contextInfo,
-          mentionedJid: [m.sender]
-        }
-      }, { quoted: m })
+        await m.react('✅').catch(() => {})
+        return
+      } catch {}
     }
 
+    await conn.sendMessage(m.chat, {
+      text: textoInfo.trim(),
+      contextInfo: {
+        ...rcanal?.contextInfo,
+        mentionedJid: [m.sender]
+      }
+    }, { quoted: m })
+    await m.react('✅').catch(() => {})
   } catch (error) {
     console.error('Error en tik:', error)
-    conn.sendMessage(m.chat, {
+    await m.react('❌').catch(() => {})
+    await conn.sendMessage(m.chat, {
       text: `[❌] Error: ${error.message || 'No se pudo obtener la información del perfil'}`,
-      contextInfo: {
-        ...rcanal.contextInfo
-      }
+      contextInfo: { ...rcanal?.contextInfo }
     }, { quoted: m })
   }
 }
 
-handler.help = ['tik <usuario> �? Obtiene información completa de un perfil de TikTok']
+handler.help = ['tik <usuario> → Obtiene información de un perfil de TikTok']
 handler.tags = ['herramientas', 'osint']
-handler.command = ['tik']
+handler.command = ['tik', 'tiktokstalk', 'ttstalk', 'infotiktok']
 
 export default handler

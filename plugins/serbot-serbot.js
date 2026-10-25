@@ -434,7 +434,7 @@ async function iniciarSubBot(options) {
                 try {
           const numeroBot = idCarpetaBot
           const rutaConfig = path.join(pathAYBot, 'config.json')
-          let nombreBot = global.namebot || 'PAIN BOT'
+          let nombreBot = global.namebot || 'Velirius bot'
           let configSub = { name: nombreBot, autoRead: false }
           
           if (fs.existsSync(rutaConfig)) {

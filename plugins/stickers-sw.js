@@ -4,7 +4,8 @@ import { readFileSync, existsSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { addExif } from '../lib/sticker.js'
-import { resolveStickerMeta } from './stickers-sticker.js'
+import { apireonBuffer } from '../lib/apireon.js'
+import { resolveStickerMeta, toWebp } from './stickers-sticker.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const FONTS_DIR = join(__dirname, '../lib/fonts')
@@ -570,9 +571,29 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     }
 
     const { primaryJid, jids, pushname } = destino
+    const jidPrincipal = primaryJid
+    const nombrePush = pushname || 'Usuario'
 
-    const buferPerfil = await obtenerBuferPerfil(conn, jids.length ? jids : [jidPrincipal], nombrePush)
-    const datosSticker = await construirSticker(nombrePush, mensaje, buferPerfil)
+    let datosSticker = null
+    try {
+      let urlAvatar = ''
+      for (const jid of (jids?.length ? jids : [jidPrincipal])) {
+        try {
+          urlAvatar = await conn.profilePictureUrl(jid, 'image')
+          if (urlAvatar) break
+        } catch {}
+      }
+      const rutaQuote = /^iqc$/i.test(command) ? '/canvas/iqc' : '/canvas/quotly'
+      const { buffer } = await apireonBuffer(rutaQuote, {
+        text: mensaje,
+        name: nombrePush,
+        ...(urlAvatar ? { avatar: urlAvatar } : {})
+      })
+      datosSticker = await toWebp(buffer)
+    } catch {
+      const buferPerfil = await obtenerBuferPerfil(conn, jids.length ? jids : [jidPrincipal], nombrePush)
+      datosSticker = await construirSticker(nombrePush, mensaje, buferPerfil)
+    }
 
     const { packname, author } = resolveStickerMeta(m, conn)
 
@@ -583,13 +604,13 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     console.error('[sw] Error:', error)
     conn.sendMessage(m.chat, {
       text: `*[❌] Error al crear sticker: ${error.message || 'desconocido'}*`,
-      contextInfo: { ...rcanal.contextInfo }
+      contextInfo: { ...rcanal?.contextInfo }
     }, { quoted: m })
   }
 }
 
 handler.help = ['#sw + {responder o @mención} texto → sticker estilo chat con foto y nombre']
 handler.tags = ['stickers']
-handler.command = ['sw', 'stickerwa', 'fakemsg', 'msgfake']
+handler.command = ['sw', 'stickerwa', 'fakemsg', 'msgfake', 'qc', 'quotly', 'iqc']
 
 export default handler

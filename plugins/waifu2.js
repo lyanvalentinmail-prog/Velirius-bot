@@ -1,28 +1,46 @@
-import fetch from 'node-fetch'
+import { apireonBuffer, apireonJson, apireonAbsUrl } from '../lib/apireon.js'
 
-let handler = async (m, { conn, usedPrefix, command }) => {
+let handler = async (m, { conn, text }) => {
   try {
-    const urlApi = 'https://bytebazz-api.koyeb.app/api/images/waifu4?apikey=8jkh5icbf05'
-    const response = await fetch(urlApi)
-    const data = await response.json()
-    
-    if (!data.status || !data.resultado || !data.resultado.resultado) {
-      return m.reply('*[❗] No se pudo obtener la imagen de waifu. Intenta de nuevo más tarde.*')
+    if (text?.trim()) {
+      const { result, baseUrl } = await apireonJson('/anime/character', { query: text.trim() })
+      const personaje = Array.isArray(result?.characters) ? result.characters[0] : (result?.character || result)
+      const img = apireonAbsUrl(personaje?.image || personaje?.images?.jpg?.image_url || '', baseUrl)
+      if (img) {
+        const nombre = personaje?.name || text.trim()
+        const anime = personaje?.anime || ''
+        const leyenda =
+          `ִֶָ☾. *Personaje Anime*\n\n` +
+          `𓍯 *Nombre:* ${nombre}` +
+          (anime ? `\n𓍯 *Anime:* ${anime}` : '')
+        await conn.sendMessage(
+          m.chat,
+          { image: { url: img }, caption: leyenda, mentions: [m.sender], contextInfo: { ...rcanal?.contextInfo } },
+          { quoted: m }
+        )
+        return
+      }
     }
-    
-    const imageUrl = data.resultado.resultado
-    await conn.sendMessage(m.chat, {
-      image: { url: imageUrl },
-      mentions: [m.sender]
-    }, { quoted: m })
-    
+
+    const { buffer } = await apireonBuffer('/anime/neko')
+    await conn.sendMessage(
+      m.chat,
+      {
+        image: buffer,
+        caption: `ִֶָ☾. *Waifu / Neko — Velirius bot*`,
+        mentions: [m.sender],
+        contextInfo: { ...rcanal?.contextInfo }
+      },
+      { quoted: m }
+    )
   } catch (error) {
-    console.error('Error en comando waifu-sfw:', error)
-    m.reply('*[❗] Ocurrió un error al obtener la imagen de waifu. Por favor, inténtalo de nuevo más tarde.*')
+    console.error('Error en comando waifu2:', error)
+    m.reply('*[❗] Ocurrió un error al obtener la imagen. Inténtalo de nuevo más tarde.*')
   }
 }
 
-handler.help = ['#waifu2']
-handler.tags = ['nsfw']
+handler.help = ['#waifu2', '#waifu2 <personaje>']
+handler.tags = ['anime', 'nsfw']
 handler.command = ['waifu2', 'waifus2']
+
 export default handler

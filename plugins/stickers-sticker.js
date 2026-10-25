@@ -53,10 +53,10 @@ export default handler
 export function resolverMetaSticker(m, conn) {
   const usuario = global.db?.data?.users?.[m.sender] || {}
   const nombreUsuario = m.pushName || conn?.getName?.(m.sender) || 'Usuario'
-  const nombreBot = global.namebot || 'PAIN BOT'
+  const nombreBot = global.namebot || 'Velirius bot'
 
-  const packPorDefecto = `👑 𝗢𝘄𝗻𝗲𝗿𝘀: \n✰ Sunkovv`
-  const autorPorDefecto = `\n\n🪐 𝗕𝗼𝘁:\n↳${nombreBot}\n\n🍁 𝑼𝒔𝒖𝒂𝒓𝒊𝒐:\n↳@${nombreUsuario}`
+  const packPorDefecto = `👑 𝗕𝗼𝘁: \n✰ ${nombreBot}`
+  const autorPorDefecto = `\n\n🪐 𝗕𝗼𝘁:\n↳ ${nombreBot}\n\n🍁 𝑼𝒔𝒖𝒂𝒓𝒊𝒐:\n↳ @${nombreUsuario}`
 
   const packPersonalizado = String(usuario.packname || '').trim()
   const autorPersonalizado = String(usuario.author || '').trim()
@@ -198,6 +198,7 @@ function esUrl(texto) {
 export {
   resolverMetaSticker as resolveStickerMeta,
   esWebPAnimado as isAnimatedWebP,
+  aWebp,
   aWebp as toWebp,
   esUrl as isUrl
 }

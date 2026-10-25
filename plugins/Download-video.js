@@ -1,7 +1,6 @@
-import fetch from 'node-fetch'
+import { apireonBuffer, apireonJson, apireonAbsUrl } from '../lib/apireon.js'
 
 const RE_URL_YT = /youtu\.be|youtube\.com/i
-const LIMITE_RESULTADOS = 5
 
 function recortarTexto(text = '', max = 100) {
   const valor = String(text).replace(/\s+/g, ' ').trim()
@@ -9,13 +8,14 @@ function recortarTexto(text = '', max = 100) {
   return valor.length > max ? `${valor.slice(0, max - 1)}…` : valor
 }
 
-function normalizarFormato(crudo = '360') {
+function normalizarFormato(crudo = '720') {
   const valor = String(crudo).trim().toLowerCase().replace(/p$/, '')
-  if (!/^\d{3,4}$/.test(valor)) return '360p'
-  return `${valor}p`
+  if (['360', '480', '720', '1080'].includes(valor)) return `${valor}p`
+  return '720p'
 }
 
 function formatearVistas(n) {
+  if (typeof n === 'string' && /[KMB]/i.test(n)) return n
   const v = Number(n) || 0
   if (v >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(1)}B`
   if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
@@ -31,21 +31,16 @@ function limpiarNombreArchivo(titulo = 'video') {
 }
 
 async function buscarPrimero(consulta) {
-  const urlBusqueda = `https://api.delirius.online/search/ytsearch?q=${encodeURIComponent(consulta)}`
-  const resBusqueda = await fetch(urlBusqueda).then(r => r.json())
-  if (!resBusqueda?.status || !Array.isArray(resBusqueda.data) || !resBusqueda.data.length) {
+  const { result, baseUrl } = await apireonJson('/search/youtube', { query: consulta, limit: 1 })
+  const lista = Array.isArray(result?.videos) ? result.videos : []
+  if (!lista.length) {
     throw '[❗] No se encontraron resultados para la búsqueda.'
   }
-  return resBusqueda.data[0]
-}
-
-async function descargarVideo(urlVideo, formato) {
-  const apiDescarga = `https://api.delirius.online/download/ytmp4?url=${encodeURIComponent(urlVideo)}&format=${encodeURIComponent(formato)}`
-  const resDescarga = await fetch(apiDescarga).then(r => r.json())
-  if (!resDescarga?.status || !resDescarga.data) {
-    throw '[❗] No se pudo obtener el video desde la URL.'
+  const primero = lista[0]
+  return {
+    ...primero,
+    image: apireonAbsUrl(primero.thumbnail || primero.image || '', baseUrl)
   }
-  return resDescarga.data
 }
 
 const handler = async (m, { conn, text, usedPrefix, command }) => {
@@ -58,7 +53,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     }
 
     let entrada = text.trim()
-    let formato = '360p'
+    let formato = '720p'
 
     const coincidenciaFormato = entrada.match(/^(.+?)\s*(?:\||\s)\s*(\d{3,4})p?$/i)
     if (coincidenciaFormato) {
@@ -71,6 +66,9 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
 
     if (RE_URL_YT.test(entrada)) {
       urlVideo = entrada
+      try {
+        vistaPrevia = await buscarPrimero(entrada)
+      } catch {}
     } else if (/^\d+$/.test(entrada)) {
       const indice = parseInt(entrada, 10) - 1
       const cacheBusqueda = global.lastYtSearch?.[m.sender]
@@ -84,68 +82,49 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       vistaPrevia = cacheBusqueda.results[indice]
     } else {
       const primero = await buscarPrimero(entrada)
-      urlVideo = primero.url || `https://youtu.be/${primero.videoId}`
+      urlVideo = primero.url || (primero.videoId ? `https://youtu.be/${primero.videoId}` : entrada)
       vistaPrevia = primero
     }
 
     await conn.sendPresenceUpdate('composing', m.chat).catch(() => {})
 
-    const datos = await descargarVideo(urlVideo, formato)
-    const descargaVideo = typeof datos.download === 'string' ? datos.download : datos.download?.url
-    if (!descargaVideo) throw '[❗] No se encontró la URL del video.'
+    let descarga
+    try {
+      descarga = await apireonBuffer('/downloader/youtube', {
+        url: urlVideo,
+        quality: formato
+      })
+    } catch {
+      descarga = await apireonBuffer('/downloader/play2', {
+        query: urlVideo,
+        type: 'video'
+      })
+    }
 
-    const titulo = datos.title || vistaPrevia?.title || 'Video'
-    const canal = datos.author || datos.channel || vistaPrevia?.author?.name || 'Desconocido'
-    const duracion = vistaPrevia?.duration || datos.duration || '—'
-    const portada = datos.image || vistaPrevia?.image || vistaPrevia?.thumbnail
+    const titulo = descarga.title || vistaPrevia?.title || 'Video'
+    const canal =
+      descarga.author ||
+      vistaPrevia?.channel?.name ||
+      vistaPrevia?.authorName ||
+      vistaPrevia?.author ||
+      'YouTube'
+    const duracion = vistaPrevia?.duration || '—'
 
     const informacion = `ִֶָ☾. 𝗩𝗶𝗱𝗲𝗼 ִֶָ☾.
  𓍯  *Título:* ${recortarTexto(titulo, 90)}
  𓍯  *Canal:* ${recortarTexto(canal, 50)}
  𓍯  *Duración:* ${duracion}
- 𓍯  *Vistas:* ${formatearVistas(datos.views || vistaPrevia?.views)}
- 𓍯  *Formato:* ${datos.format || formato}
+ 𓍯  *Vistas:* ${formatearVistas(vistaPrevia?.views)}
+ 𓍯  *Formato:* ${formato}
  𓍯  *Enlace:* ${urlVideo}`
 
-    if (portada) {
-      try {
-        const miniatura = (await conn.getFile(portada)).data
-        await conn.sendMessage(m.chat, {
-          image: miniatura,
-          caption: informacion,
-          contextInfo: { ...rcanal?.contextInfo }
-        }, { quoted: m })
-      } catch {
-        await conn.sendMessage(m.chat, {
-          text: informacion,
-          contextInfo: { ...rcanal?.contextInfo }
-        }, { quoted: m })
-      }
-    } else {
-      await conn.sendMessage(m.chat, {
-        text: informacion,
-        contextInfo: { ...rcanal?.contextInfo }
-      }, { quoted: m })
-    }
-
-    try {
-      await conn.sendMessage(m.chat, {
-        video: { url: descargaVideo },
-        caption: informacion,
-        fileName: `${limpiarNombreArchivo(titulo)}.mp4`,
-        mimetype: 'video/mp4'
-      }, { quoted: m })
-    } catch {
-      const respuesta = await fetch(descargaVideo)
-      if (!respuesta.ok) throw new Error('No se pudo descargar el archivo MP4.')
-      const bufer = Buffer.from(await respuesta.arrayBuffer())
-      await conn.sendMessage(m.chat, {
-        video: bufer,
-        caption: informacion,
-        fileName: `${limpiarNombreArchivo(titulo)}.mp4`,
-        mimetype: 'video/mp4'
-      }, { quoted: m })
-    }
+    await conn.sendMessage(m.chat, {
+      video: descarga.buffer,
+      caption: informacion,
+      fileName: `${limpiarNombreArchivo(titulo)}.mp4`,
+      mimetype: 'video/mp4',
+      contextInfo: { ...rcanal?.contextInfo }
+    }, { quoted: m })
 
     await conn.sendPresenceUpdate('paused', m.chat).catch(() => {})
   } catch (e) {
@@ -153,7 +132,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     return conn.sendMessage(m.chat, {
       text: typeof e === 'string'
         ? e
-        : `[❌] Se ha producido un problema.\n> Usa *${usedPrefix}report* para informarlo.\n\n${e.message}`,
+        : `[❌] Se ha producido un problema.\n\n> ${e.message}`,
       contextInfo: { ...rcanal?.contextInfo }
     }, { quoted: m })
   }

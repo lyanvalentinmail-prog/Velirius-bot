@@ -6,7 +6,7 @@ let handler = async (m, { conn, usedPrefix, command, text, args }) => {
   const botActual = conn.user?.jid?.split('@')[0].replace(/\D/g, '')
   const rutaConfig = join('./Serbot', botActual, 'config.json')
 
-  let nombreBot = global.namebot || 'PAIN BOT'
+  let nombreBot = global.namebot || 'Velirius bot'
 
   if (fs.existsSync(rutaConfig)) {
     try {

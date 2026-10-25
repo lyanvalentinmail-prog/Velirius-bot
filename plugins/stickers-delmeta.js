@@ -23,7 +23,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         m.chat,
         `*[❗] Responde a un *sticker* (normal o animado) con el comando.*\n\n` +
           `Ejemplos:\n` +
-          `> ${usedPrefix + command} Pain Bot|Sunkovv\n` +
+          `> ${usedPrefix + command} Velirius bot|Velirius\n` +
           `> ${usedPrefix + command} Mi Pack\n` +
           `> ${usedPrefix + command} Mi Pack|`,
         m,
@@ -59,7 +59,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       return conn.reply(
         m.chat,
         `*[❗] Debes indicar al menos el *nombre* del pack.*\n\n` +
-          `Ejemplo: ${usedPrefix + command} Pain Bot|Sunkovv`,
+          `Ejemplo: ${usedPrefix + command} Velirius bot|Velirius`,
         m,
         global.rcanal
       )

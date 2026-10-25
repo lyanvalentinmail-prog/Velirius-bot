@@ -9,7 +9,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin, isBotAdmin }
 
   if (!nuevaDesc) {
     return conn.sendMessage(m.chat, {
-      text: `[❗] Debes indicar la nueva descripción del grupo.\n\n> *Ejemplo:*\n- ${usedPrefix + command} Bienvenidos al grupo de PAIN BOT, esta prohibido los links.`,
+      text: `[❗] Debes indicar la nueva descripción del grupo.\n\n> *Ejemplo:*\n- ${usedPrefix + command} Bienvenidos al grupo de Velirius bot, está prohibido mandar links.`,
       contextInfo: { ...rcanal.contextInfo }
     }, { quoted: m })
   }

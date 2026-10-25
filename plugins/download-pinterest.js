@@ -1,129 +1,58 @@
-import axios from 'axios'
-
-const CABECERAS = {
-  'User-Agent':
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
-  Accept: 'application/json, text/plain, */*'
-}
-
-function esLinkPinterest(texto = '') {
-  return /https?:\/\/(www\.)?(pinterest\.[a-z.]+|pin\.it)\//i.test(texto)
-}
-
-async function buscarPinterest(consulta) {
-  const url = `https://api.delirius.online/search/pinterest?text=${encodeURIComponent(consulta)}`
-  const { data, status } = await axios.get(url, {
-    timeout: 45000,
-    headers: CABECERAS,
-    validateStatus: () => true
-  })
-  if (status >= 400 || !data?.status) return []
-
-  const lista = Array.isArray(data.results)
-    ? data.results
-    : Array.isArray(data.data)
-      ? data.data
-      : []
-
-  return lista
-    .map(item => {
-      if (typeof item === 'string') return item
-      return (
-        item?.image_large_url ||
-        item?.images?.orig?.url ||
-        item?.image ||
-        item?.url ||
-        item?.media?.url ||
-        null
-      )
-    })
-    .filter(Boolean)
-}
-
-async function descargarPin(urlPin) {
-  const url = `https://api.delirius.online/download/pinterestdl?url=${encodeURIComponent(urlPin)}`
-  const { data, status } = await axios.get(url, {
-    timeout: 45000,
-    headers: CABECERAS,
-    validateStatus: () => true
-  })
-  if (status >= 400 || !data?.status) return null
-
-  const d = data.data || data.result || data
-  const media =
-    d?.download ||
-    d?.url ||
-    d?.media ||
-    d?.image ||
-    d?.imageLargeUrl ||
-    d?.image_large_url ||
-    d?.video ||
-    null
-
-  if (!media) return null
-  return {
-    title: d.title || d.description || 'Pinterest',
-    download: media
-  }
-}
+import { apireonJson, apireonAbsUrl } from '../lib/apireon.js'
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text?.trim()) {
     return conn.sendMessage(m.chat, {
-      text: `[❗] Ingresa lo que deseas buscar en Pinterest\n> Ejemplo: ${usedPrefix + command} wallpaper`,
+      text: `ִֶָ☾. Ingresa lo que deseas buscar en *Pinterest*.\n\n> *Ejemplo:* ${usedPrefix + command} anime aesthetic`,
       contextInfo: { ...rcanal?.contextInfo }
     }, { quoted: m })
   }
 
+  const consulta = text.trim()
+  await m.react('⏳').catch(() => {})
+
   try {
-    const consulta = text.trim()
+    const { result, baseUrl } = await apireonJson('/search/pinterest', { query: consulta, limit: 20 })
+    const pines = Array.isArray(result?.pins) ? result.pins : []
 
-    if (esLinkPinterest(consulta)) {
-      const link = consulta.split(/\s+/)[0]
-      const i = await descargarPin(link)
-      if (!i?.download) {
-        return conn.sendMessage(m.chat, {
-          text: '[❗] No se pudo obtener el contenido de ese enlace de Pinterest.',
-          contextInfo: { ...rcanal?.contextInfo }
-        }, { quoted: m })
-      }
-
-      const esVideo = /\.mp4($|\?)/i.test(i.download) || /video/i.test(i.download)
-      await conn.sendMessage(m.chat, {
-        [esVideo ? 'video' : 'image']: { url: i.download },
-        caption: `> *Título:* ${i.title || 'Sin título'}\n> *Tipo:* ${esVideo ? 'Video' : 'Imagen'}`,
-        contextInfo: { ...rcanal?.contextInfo }
-      }, { quoted: m })
-      return
-    }
-
-    const resultados = await buscarPinterest(consulta)
-    if (!resultados.length) {
+    if (!pines.length) {
+      await m.react('❌').catch(() => {})
       return conn.sendMessage(m.chat, {
-        text: `[❗] No se encontraron resultados para: "${consulta}"`,
+        text: `[❗] No se encontraron pines para *${consulta}*.`,
         contextInfo: { ...rcanal?.contextInfo }
       }, { quoted: m })
     }
 
-    for (const urlImg of resultados.slice(0, 3)) {
-      await conn.sendMessage(m.chat, {
-        image: { url: urlImg },
-        caption: `> *Búsqueda:* ${consulta}`,
-        contextInfo: { ...rcanal?.contextInfo }
-      }, { quoted: m })
-    }
+    const elegido = pines[Math.floor(Math.random() * pines.length)]
+    const urlImagen = apireonAbsUrl(elegido.image || elegido.thumbnail || '', baseUrl)
+    if (!urlImagen) throw new Error('Pin sin imagen válida.')
+
+    let leyenda = `ִֶָ☾. *Pinterest* ִֶָ☾.\n\n`
+    leyenda += `𓍯 *Búsqueda:* ${consulta}\n`
+    if (elegido.title) leyenda += `𓍯 *Título:* ${elegido.title}\n`
+    if (elegido.author) leyenda += `𓍯 *Autor:* ${elegido.author}\n`
+    if (elegido.pinUrl) leyenda += `𓍯 *Pin:* ${elegido.pinUrl}`
+
+    await conn.sendMessage(m.chat, {
+      image: { url: urlImagen },
+      caption: leyenda.trim(),
+      contextInfo: { ...rcanal?.contextInfo }
+    }, { quoted: m })
+
+    await m.react('✅').catch(() => {})
   } catch (e) {
-    console.error('Error en Pinterest:', e)
-    conn.sendMessage(m.chat, {
-      text: '[❗] Se produjo un error al procesar Pinterest. Inténtalo de nuevo.',
+    console.error('[pinterest] Error:', e)
+    await m.react('❌').catch(() => {})
+    await conn.sendMessage(m.chat, {
+      text: `[❌] Error buscando en Pinterest.\n> ${e.message}`,
       contextInfo: { ...rcanal?.contextInfo }
     }, { quoted: m })
   }
 }
 
-handler.help = ['pinterest <búsqueda | link>']
-handler.tags = ['downloader']
-handler.command = ['pinterest', 'pin']
+handler.help = ['pinterest <búsqueda>', 'pimg <búsqueda>']
+handler.tags = ['descargas', 'buscador']
+handler.command = ['pinterest', 'pimg']
 handler.group = true
 
 export default handler
