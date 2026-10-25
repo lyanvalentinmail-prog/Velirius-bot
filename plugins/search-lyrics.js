@@ -1,4 +1,4 @@
-import fetch from 'node-fetch'
+import { apireonJson } from '../lib/apireon.js'
 
 const MAX_FRAGMENTO = 3800
 
@@ -18,38 +18,45 @@ function partirLetras(text, max = MAX_FRAGMENTO) {
   return fragmentos
 }
 
+function formatearDuracionSeg(seg) {
+  const s = Math.floor(Number(seg) || 0)
+  if (!s) return '—'
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
+
 function construirEncabezado(datos, consulta) {
   return `ִֶָ☾. 𝗟𝘆𝗿𝗶𝗰𝘀 ִֶָ☾.
 
  𓍯  *Búsqueda:* ${consulta}
- 𓍯  *Título:* ${datos.title || 'Desconocido'}
- 𓍯  *Artista:* ${datos.artists || 'Desconocido'}
- 𓍯  *Álbum:* ${datos.album || '—'}
- 𓍯  *Duración:* ${datos.duration || '—'}`
+ 𓍯  *Título:* ${datos.trackName || datos.title || 'Desconocido'}
+ 𓍯  *Artista:* ${datos.artistName || datos.artists || 'Desconocido'}
+ 𓍯  *Álbum:* ${datos.albumName || datos.album || '—'}
+ 𓍯  *Duración:* ${datos.durationSeconds ? formatearDuracionSeg(datos.durationSeconds) : (datos.duration || '—')}`
 }
 
 const handler = async (m, { conn, text, usedPrefix, command }) => {
   try {
     if (!text?.trim()) {
       return conn.sendMessage(m.chat, {
-        text: `ִֶָ☾. Ingresa el nombre de la canción.\n\n> *Ejemplo:*\n${usedPrefix + command} its you`,
+        text: `ִֶָ☾. Ingresa el nombre de la canción.\n\n> *Ejemplo:*\n${usedPrefix + command} Blinding Lights`,
         contextInfo: { ...rcanal?.contextInfo }
       }, { quoted: m })
     }
 
     const consulta = text.trim()
-    const urlApi = `https://api.delirius.online/search/lyrics?query=${encodeURIComponent(consulta)}`
-    const resBusqueda = await fetch(urlApi).then(r => r.json())
+    let datos = null
 
-    if (!resBusqueda?.status || !resBusqueda?.data) {
-      throw '[❗] No se encontraron letras para esa búsqueda.'
+    try {
+      const { result } = await apireonJson('/search/lyric', { query: consulta })
+      datos = result
+    } catch {
+      const { result } = await apireonJson('/downloader/lyric', { query: consulta })
+      datos = result
     }
 
-    const datos = resBusqueda.data
-    const letra = String(datos.lyrics || '').trim()
-
+    const letra = String(datos?.lyrics || datos?.plainLyrics || '').trim()
     if (!letra) {
-      throw '[❗] La canción no tiene letra disponible.'
+      throw '[❗] No se encontraron letras para esa canción.'
     }
 
     await conn.sendMessage(m.chat, {
@@ -76,6 +83,6 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
 
 handler.help = ['ly <canción> → Letra de la canción']
 handler.tags = ['descargas', 'busqueda']
-handler.command = ['ly', 'lyrics', 'letra', 'letras']
+handler.command = ['ly', 'lyrics', 'lyric', 'letra', 'letras']
 
 export default handler

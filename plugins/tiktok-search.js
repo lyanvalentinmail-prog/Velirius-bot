@@ -1,116 +1,94 @@
-import { downloadTikTok, searchTikTok } from './tiktok-2.js'
+import { sanitizeTikTokUrl, downloadTikTok, searchTikTok } from './tiktok-2.js'
 
-const RE_URL_TT =
-  /(?:https?:\/\/)?(?:www\.|vm\.|vt\.|m\.|t\.)?tiktok\.com\/[^\s]+/i
+const REGEX_URL_TT = /https?:\/\/(?:www\.|vm\.|vt\.|m\.)?tiktok\.com\/[^\s]+/i
 
-function construirLeyendaBusqueda(video) {
-  const autor = video.author?.nickname || video.author?.unique_id || 'Desconocido'
-  return `𝗥𝗘𝗦𝗨𝗟𝗧𝗔𝗗𝗢 𝗗𝗘 𝗧𝗜𝗞𝗧𝗢𝗞
-
-> *[+] Título:* ${video.title || 'Sin título'}
-> *[+] Autor:* ${autor}
-> *[+] Región:* ${video.region || 'Desconocida'}
-> *[+] Duración:* ${video.duration || 'N/A'}s
-
-> *[•] Estadísticas*
-> *├─* Vistas: ${video.play_count?.toLocaleString?.() || video.play_count || 'N/A'}
-> *├─* Me gusta: ${video.digg_count?.toLocaleString?.() || video.digg_count || 'N/A'}
-> *├─* Comentarios: ${video.comment_count?.toLocaleString?.() || video.comment_count || 'N/A'}
-> *├─* Compartidos: ${video.share_count?.toLocaleString?.() || video.share_count || 'N/A'}
-> *└─* Descargas: ${video.download_count?.toLocaleString?.() || video.download_count || 'N/A'}`
+function formatearNumero(n) {
+  const num = Number(n)
+  if (!Number.isFinite(num)) return String(n || 0)
+  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`
+  if (num >= 1_000) return `${(num / 1_000).toFixed(1)}K`
+  return String(num)
 }
 
-function construirLeyendaEnlace(video) {
-  return `𝗧𝗜𝗞𝗧𝗢𝗞 𝗩𝗜𝗗𝗘𝗢
+function construirLeyendaBusqueda(item) {
+  const titulo = String(item?.title || 'Sin descripción').trim().slice(0, 260)
+  const autor = item?.author?.nickname || item?.author?.username || 'TikTok'
+  const usuario = item?.author?.username ? ` (@${item.author.username})` : ''
+  const estadisticas = item?.stats || {}
+  const metricas = [
+    estadisticas.views ? `▶ ${formatearNumero(estadisticas.views)}` : '',
+    estadisticas.likes ? `❤️ ${formatearNumero(estadisticas.likes)}` : '',
+    estadisticas.comments ? `💬 ${formatearNumero(estadisticas.comments)}` : ''
+  ].filter(Boolean).join(' · ')
 
-> *[+] Título:* ${video.title || 'Sin título'}
-> *[+] Autor:* ${video.author?.nickname || video.author?.unique_id || 'Desconocido'}
-> *[+] Duración:* ${video.duration || 'N/A'}s`
-}
-
-async function enviarVideo(conn, m, video, leyenda) {
-  if (video.type === 'image' && Array.isArray(video.images) && video.images.length) {
-    for (const img of video.images.slice(0, 6)) {
-      await conn.sendMessage(
-        m.chat,
-        { image: { url: img }, caption: leyenda, contextInfo: { ...rcanal.contextInfo } },
-        { quoted: m }
-      )
-    }
-    return
-  }
-
-  if (!video.play) throw new Error('Sin URL de video')
-
-  await conn.sendMessage(
-    m.chat,
-    {
-      video: { url: video.play },
-      caption: leyenda,
-      contextInfo: { ...rcanal.contextInfo }
-    },
-    { quoted: m }
+  return (
+    `🎵 *TikTok Search*\n\n` +
+    `👤 *Autor:* ${autor}${usuario}\n` +
+    (metricas ? `📊 ${metricas}\n` : '') +
+    `📝 ${titulo}`
   )
 }
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
-  if (!text?.trim()) {
-    return conn.sendMessage(
-      m.chat,
-      {
-        text:
-          `*[❗] Ingresa un término o un enlace de TikTok.*\n` +
-          `Ejemplo:\n> ${usedPrefix + command} funk\n> ${usedPrefix + command} https://www.tiktok.com/...`,
-        contextInfo: { ...rcanal.contextInfo }
-      },
-      { quoted: m }
-    )
+  const textoCitado = m.quoted?.text || m.quoted?.caption || ''
+  const crudo = (text || textoCitado || '').trim()
+
+  if (!crudo) {
+    return conn.sendMessage(m.chat, {
+      text:
+        `[❗] Escribe un *enlace* o una *búsqueda* de TikTok.\n\n` +
+        `> *Enlace:* ${usedPrefix + command} https://vm.tiktok.com/...\n` +
+        `> *Buscar:* ${usedPrefix + command} edits anime`,
+      contextInfo: { ...rcanal?.contextInfo }
+    }, { quoted: m })
   }
 
-  const entrada = text.trim()
-  const esUrl = RE_URL_TT.test(entrada)
+  const coincidenciaUrl = crudo.match(REGEX_URL_TT)
+  await m.react('⏳').catch(() => {})
 
   try {
-    await conn.sendMessage(m.chat, { react: { text: '⏳', key: m.key } }).catch(() => {})
+    if (coincidenciaUrl) {
+      const urlLimpia = sanitizeTikTokUrl(coincidenciaUrl[0])
+      const d = await downloadTikTok(urlLimpia, 'video')
 
-    if (esUrl) {
-    
-      const link = entrada.match(RE_URL_TT)?.[0] || entrada
-      const video = await downloadTikTok(link)
-      await enviarVideo(conn, m, video, construirLeyendaEnlace(video))
-    } else {
-      const resultados = await searchTikTok(entrada, 1)
-      const video = resultados[0]
-      if (!video) {
-        return conn.sendMessage(
-          m.chat,
-          {
-            text: '*[❗] No se encontraron resultados para tu búsqueda.*',
-            contextInfo: { ...rcanal.contextInfo }
-          },
-          { quoted: m }
-        )
-      }
-      await enviarVideo(conn, m, video, construirLeyendaBusqueda(video))
+      await conn.sendMessage(m.chat, {
+        video: d.buffer,
+        mimetype: 'video/mp4',
+        caption: `🎵 *TikTok Downloader*\n\n👤 *Autor:* ${d.author || 'TikTok'}\n📝 ${String(d.title || 'TikTok').slice(0, 260)}`,
+        contextInfo: { ...rcanal?.contextInfo }
+      }, { quoted: m })
+
+      await m.react('✅').catch(() => {})
+      return
     }
 
-    await conn.sendMessage(m.chat, { react: { text: '✅', key: m.key } }).catch(() => {})
+    const resultados = await searchTikTok(crudo, 8)
+    const conUrl = resultados.filter(r => r.url)
+    const elegido = conUrl[Math.floor(Math.random() * Math.min(conUrl.length, 4))] || resultados[0]
+    if (!elegido?.url) throw new Error('No se encontró un enlace válido.')
+
+    const d = await downloadTikTok(elegido.url, 'video')
+    await conn.sendMessage(m.chat, {
+      video: d.buffer,
+      mimetype: 'video/mp4',
+      caption: construirLeyendaBusqueda(elegido),
+      contextInfo: { ...rcanal?.contextInfo }
+    }, { quoted: m })
+
+    await m.react('✅').catch(() => {})
   } catch (e) {
-    console.error('Error en tiktok-search:', e)
-    await conn.sendMessage(m.chat, { react: { text: '❌', key: m.key } }).catch(() => {})
-    conn.sendMessage(
-      m.chat,
-      {
-        text: `*[❗] Ocurrió un error al procesar TikTok.*\n> ${e?.message || e}`,
-        contextInfo: { ...rcanal.contextInfo }
-      },
-      { quoted: m }
-    )
+    console.error('[tiktok2] Error:', e.message)
+    await m.react('❌').catch(() => {})
+    await conn.sendMessage(m.chat, {
+      text: `[❌] Error con TikTok.\n> ${e.message}`,
+      contextInfo: { ...rcanal?.contextInfo }
+    }, { quoted: m })
   }
 }
 
-handler.help = ['#tiktok <búsqueda | link>']
-handler.tags = ['busqueda', 'descargas']
-handler.command = ['tiktok', 'ttsearch', 'tt']
+handler.help = ['tiktok2 <url|búsqueda>', 'tt2 <url|búsqueda>']
+handler.tags = ['descargas']
+handler.command = ['tiktok2', 'tt2', 'tiktoks2', 'tts2']
+handler.group = true
 
 export default handler

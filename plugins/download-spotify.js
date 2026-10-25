@@ -1,101 +1,132 @@
-import axios from "axios"
+import { apireonBuffer, apireonJson, apireonAbsUrl } from '../lib/apireon.js'
 
-const handler = async (m, { conn, text, usedPrefix, command }) => {
-  if (!text) {
-    return m.reply(`*[❗] Ingresa el nombre de una canción o un enlace de Spotify.*\nEjemplo: ${usedPrefix + command} Linkin Park Numb`)
+function formatearMs(ms) {
+  const seg = Math.floor((Number(ms) || 0) / 1000)
+  if (!seg) return '—'
+  const m = Math.floor(seg / 60)
+  const s = String(seg % 60).padStart(2, '0')
+  return `${m}:${s}`
+}
+
+let handler = async (m, { conn, text, usedPrefix, command }) => {
+  if (!text?.trim()) {
+    return conn.sendMessage(m.chat, {
+      text: `ִֶָ☾. Ingresa el nombre o enlace de la canción de *Spotify*.\n\n> *Ejemplo:* ${usedPrefix + command} Blinding Lights`,
+      contextInfo: { ...rcanal?.contextInfo }
+    }, { quoted: m })
   }
 
   try {
+    await m.react('⏳').catch(() => {})
+    const consulta = text.trim()
 
-    const esUrl = /https?:\/\/(open\.)?spotify\.com\/track\/[a-zA-Z0-9]+/.test(text)
-    let urlPista = text
-    let informacion = null
-
-    
-    if (!esUrl) {
-      const busqueda = await axios.get(`${global.APIs.delirius.url}/search/spotify?q=${encodeURIComponent(text)}&limit=1`)
-      const resultado = Array.isArray(busqueda.data?.data) ? busqueda.data.data[0] : null
-
-      if (!resultado?.url) throw new Error("⚠︎ No se encontraron resultados.")
-
-      urlPista = resultado.url
-      informacion = {
-        title: resultado.title || "Desconocido",
-        artist: resultado.artist || "Desconocido",
-        album: resultado.album || "Desconocido",
-        duration: resultado.duration || null,
-        popularity: resultado.popularity || null,
-        release: resultado.publish || null,
-        image: resultado.image || null,
-        url: resultado.url
+    if (/album/i.test(command)) {
+      const { result, baseUrl } = await apireonJson('/search/spotifyalbum', { query: consulta, limit: 5 })
+      const albums = result?.albums || result?.items || result?.results || []
+      if (!Array.isArray(albums) || !albums.length) {
+        return conn.sendMessage(m.chat, {
+          text: `[❗] No se encontraron álbumes en Spotify para *${consulta}*.`,
+          contextInfo: { ...rcanal?.contextInfo }
+        }, { quoted: m })
       }
+      let cuerpo = `ִֶָ☾. *Álbumes en Spotify*\n\n`
+      albums.slice(0, 5).forEach((alb, idx) => {
+        cuerpo += `*${idx + 1}.* ${alb.name || alb.title || 'Álbum'}\n`
+        if (alb.artist || alb.artistName) cuerpo += `> *Artista:* ${alb.artist || alb.artistName}\n`
+        if (alb.releaseDate) cuerpo += `> *Lanzamiento:* ${alb.releaseDate}\n`
+        if (alb.totalTracks || alb.trackCount) cuerpo += `> *Canciones:* ${alb.totalTracks || alb.trackCount}\n`
+        if (alb.url || alb.collectionViewUrl) cuerpo += `> *Link:* ${alb.url || alb.collectionViewUrl}\n`
+        cuerpo += '\n'
+      })
+      const portada = apireonAbsUrl(albums[0]?.artwork || albums[0]?.image || albums[0]?.cover || '', baseUrl)
+      if (portada) {
+        await conn.sendMessage(m.chat, {
+          image: { url: portada },
+          caption: cuerpo.trim(),
+          contextInfo: { ...rcanal?.contextInfo }
+        }, { quoted: m })
+      } else {
+        await conn.sendMessage(m.chat, {
+          text: cuerpo.trim(),
+          contextInfo: { ...rcanal?.contextInfo }
+        }, { quoted: m })
+      }
+      await m.react('✅').catch(() => {})
+      return
     }
 
-    
-    const respuesta = await axios.get(`${global.APIs.delirius.url}/download/spotifydl?url=${encodeURIComponent(urlPista)}`)
-    const d = respuesta.data?.data
-
-    if (!respuesta.data?.status || !d?.url) throw new Error("⚠︎ No se pudo obtener el audio.")
-
-    const datos = {
-      title: d.title || informacion?.title || "Desconocido",
-      artist: d.author || informacion?.artist || "Desconocido",
-      album: informacion?.album || "Desconocido",
-      duration: informacion?.duration || `${Math.floor(d.duration / 60000)}:${String(Math.floor((d.duration % 60000) / 1000)).padStart(2, '0')}`,
-      popularity: informacion?.popularity || "Desconocido",
-      release: informacion?.release || "Desconocido",
-      type: d.type,
-      source: d.source,
-      image: d.image || informacion?.image,
-      download: d.url,
-      url: informacion?.url || urlPista
+    const { result, baseUrl } = await apireonJson('/search/spotify', { query: consulta, limit: 3 })
+    const pistas = Array.isArray(result?.tracks) ? result.tracks : []
+    if (!pistas.length) {
+      await m.react('❌').catch(() => {})
+      return conn.sendMessage(m.chat, {
+        text: `[❗] No se encontraron resultados en Spotify para *${consulta}*.`,
+        contextInfo: { ...rcanal?.contextInfo }
+      }, { quoted: m })
     }
 
-    
-    const leyenda = `╭───「 ✦ 𝗦𝗣𝗢𝗧𝗜𝗙𝗬 ✦ 」\n│\n` +
-      `│  *Título:* ${datos.title}\n` +
-      `│  *Autor:* ${datos.artist}\n` +
-      `${datos.album && datos.album !== "Desconocido" ? `│  *Álbum:* ${datos.album}\n` : ''}` +
-      `${datos.duration ? `│  *Duración:* ${datos.duration}\n` : ''}` +
-      `${datos.popularity && datos.popularity !== "Desconocido" ? `│  *Popularidad:* ${datos.popularity}\n` : ''}` +
-      `${datos.release && datos.release !== "Desconocido" ? `│  *Publicado:* ${datos.release}\n` : ''}` +
-      `${datos.url ? `│  *Enlace:* ${datos.url}\n` : ''}` +
-      `╰───「 ✦ ${global.packname} ✦ 」`
+    const pista = pistas[0]
+    const titulo = pista.title || 'Canción'
+    const artista = pista.artist || 'Artista'
+    const album = pista.album || 'Single'
+    const duracion = pista.durationFormatted || formatearMs(pista.durationMs)
+    const fecha = (pista.releaseDate || '').slice(0, 10) || '—'
+    const portada = apireonAbsUrl(pista.artwork || pista.image || '', baseUrl)
+    const enlace = pista.appleMusicUrl || pista.spotifySearchUrl || `https://open.spotify.com/search/${encodeURIComponent(`${titulo} ${artista}`)}`
 
-await conn.sendMessage(m.chat, {
-  text: leyenda,
-  contextInfo: {
-    externalAdReply: {
-      showAdAttribution: true,
-      containsAutoReply: true,
-      renderLargerThumbnail: true,
-      title: '🎵 Spotify Downloader',
-      body: `Autor: ${datos.artist}`, 
-      mediaType: 1,
-      thumbnailUrl: datos.image,
-      mediaUrl: datos.url,
-      sourceUrl: datos.url,
+    const texto = `ִֶָ☾. *Spotify Music* ִֶָ☾.
+
+𓍯 *Título:* ${titulo}
+𓍯 *Artista:* ${artista}
+𓍯 *Álbum:* ${album}
+𓍯 *Duración:* ${duracion}
+𓍯 *Lanzamiento:* ${fecha}
+𓍯 *Enlace:* ${enlace}`
+
+    if (portada) {
+      try {
+        await conn.sendMessage(m.chat, {
+          image: { url: portada },
+          caption: texto,
+          contextInfo: { ...rcanal?.contextInfo }
+        }, { quoted: m })
+      } catch {
+        await conn.sendMessage(m.chat, {
+          text: texto,
+          contextInfo: { ...rcanal?.contextInfo }
+        }, { quoted: m })
+      }
+    } else {
+      await conn.sendMessage(m.chat, {
+        text: texto,
+        contextInfo: { ...rcanal?.contextInfo }
+      }, { quoted: m })
     }
-  }
-}, { quoted: m })
 
-    
+    const consultaAudio = `${titulo} ${artista} official audio`
+    const audioDescarga = await apireonBuffer('/downloader/play', { query: consultaAudio })
+
     await conn.sendMessage(m.chat, {
-      audio: { url: datos.download },
-      fileName: `${datos.title}.mp3`,
-      mimetype: 'audio/mpeg'
+      audio: audioDescarga.buffer,
+      fileName: `${titulo}.mp3`,
+      mimetype: 'audio/mpeg',
+      ptt: false,
+      contextInfo: { ...rcanal?.contextInfo }
     }, { quoted: m })
 
-
-  } catch (err) {
-    console.error("Error en Spotify:", err)
-    m.reply(`⚠︎ Ocurrió un problema.\n> Usa *${usedPrefix}report* para informarlo.\n\n${err.message}`)
+    await m.react('✅').catch(() => {})
+  } catch (e) {
+    console.error('[spotify] Error:', e)
+    await m.react('❌').catch(() => {})
+    await conn.sendMessage(m.chat, {
+      text: `[❌] Error procesando Spotify.\n> ${e.message}`,
+      contextInfo: { ...rcanal?.contextInfo }
+    }, { quoted: m })
   }
 }
 
-handler.help = ["spotify <canción | link>"]
-handler.tags = ["downloader"]
-handler.command = ["spotify", "splay"]
-handler.group = true
+handler.help = ['spotify <canción>', 'splay <canción>', 'spotifyalbum <álbum>']
+handler.tags = ['descargas']
+handler.command = ['spotify', 'splay', 'spotifyalbum']
 
 export default handler

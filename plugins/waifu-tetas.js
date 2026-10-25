@@ -1,54 +1,31 @@
-import fetch from 'node-fetch'
-
-const API_URL = () =>
-  `${(global.APIs?.delirius?.url || 'https://api.delirius.online').replace(/\/$/, '')}/nsfw/boobs`
+import { apireonJson, apireonAbsUrl } from '../lib/apireon.js'
 
 let handler = async (m, { conn }) => {
   try {
-    const response = await fetch(API_URL(), {
-      headers: {
-        'User-Agent': 'Mozilla/5.0',
-        Accept: 'image/*,application/json'
-      }
+    const { result, baseUrl } = await apireonJson('/search/pinterest', {
+      query: 'anime cosplay model glamour',
+      limit: 25
     })
-
-    if (!response.ok) {
+    const pines = Array.isArray(result?.pins) ? result.pins : []
+    if (!pines.length) {
       return m.reply('*[❗] No se pudo obtener la imagen. Intenta de nuevo más tarde.*')
     }
 
-    const contentType = String(response.headers.get('content-type') || '')
-    let imageBuffer
-
-    if (contentType.includes('image/')) {
-      imageBuffer = Buffer.from(await response.arrayBuffer())
-    } else {
-      const data = await response.json()
-      const imageUrl = data?.data?.url || data?.data?.image || data?.url || data?.image
-      if (!imageUrl) {
-        return m.reply('*[❗] No se pudo obtener la imagen. Intenta de nuevo más tarde.*')
-      }
-      const imgRes = await fetch(imageUrl)
-      if (!imgRes.ok) {
-        return m.reply('*[❗] No se pudo obtener la imagen. Intenta de nuevo más tarde.*')
-      }
-      imageBuffer = Buffer.from(await imgRes.arrayBuffer())
-    }
-
-    if (!imageBuffer?.length) {
-      return m.reply('*[❗] No se pudo obtener la imagen. Intenta de nuevo más tarde.*')
-    }
+    const elegido = pines[Math.floor(Math.random() * pines.length)]
+    const urlImagen = apireonAbsUrl(elegido.image || elegido.thumbnail || '', baseUrl)
 
     await conn.sendMessage(
       m.chat,
       {
-        image: imageBuffer,
-        mentions: [m.sender]
+        image: { url: urlImagen },
+        mentions: [m.sender],
+        contextInfo: { ...rcanal?.contextInfo }
       },
       { quoted: m }
     )
   } catch (error) {
     console.error('Error en comando tetas:', error)
-    m.reply('*[❗] Ocurrió un error al obtener la imagen. Por favor, inténtalo de nuevo más tarde.*')
+    m.reply('*[❗] Ocurrió un error al obtener la imagen. Inténtalo de nuevo más tarde.*')
   }
 }
 

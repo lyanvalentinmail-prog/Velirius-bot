@@ -1,4 +1,4 @@
-import fetch from 'node-fetch'
+import { apireonBuffer, apireonJson } from '../lib/apireon.js'
 
 const REGEX_URL_IG = /(?:https?:\/\/)?(?:www\.)?instagram\.com\/(?:reel|reels|p|tv)\/[\w-]+/i
 
@@ -6,72 +6,72 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
   try {
     if (!text?.trim()) {
       return conn.sendMessage(m.chat, {
-        text: `[❗] Ingresa un enlace o búsqueda de Instagram Reels.\n\n> *URL:*\n${usedPrefix + command} https://www.instagram.com/reel/...\n\n> *Búsqueda:*\n${usedPrefix + command} its you`,
+        text: `[❗] Ingresa un enlace o búsqueda de Instagram Reels.\n\n> *URL:*\n${usedPrefix + command} https://www.instagram.com/reel/...\n\n> *Búsqueda:*\n${usedPrefix + command} nasa`,
         contextInfo: { ...rcanal?.contextInfo }
       }, { quoted: m })
     }
 
     const consulta = text.trim()
     let urlReel = consulta.match(REGEX_URL_IG)?.[0]
-    let titulo = 'Instagram Reel'
-    let descripcion = ''
-    let urlMiniatura
+    if (urlReel && !/^https?:\/\//i.test(urlReel)) urlReel = `https://${urlReel}`
 
     if (!urlReel) {
-      const urlBusqueda = `https://api.delirius.online/search/instagramreels?query=${encodeURIComponent(consulta)}&language=es`
-      const resBusqueda = await fetch(urlBusqueda).then(r => r.json())
+      const { result } = await apireonJson('/search/instagram', { query: consulta, limit: 5 })
+      const lista = result?.results || result?.items || []
+      const reelItem = lista.find(it => REGEX_URL_IG.test(it?.url || ''))
 
-      if (!resBusqueda?.status || !Array.isArray(resBusqueda.data) || !resBusqueda.data.length) {
-        throw '[❗] No se encontraron reels para esa búsqueda.'
+      if (!reelItem) {
+        if (Array.isArray(lista) && lista.length) {
+          let texto = `ִֶָ☾. *Resultados de Instagram*\n\n`
+          lista.slice(0, 5).forEach((it, idx) => {
+            texto += `*${idx + 1}.* ${it.title || it.username || 'Instagram'}\n`
+            if (it.description) texto += `> ${it.description}\n`
+            if (it.url) texto += `> ${it.url}\n`
+            texto += '\n'
+          })
+          return conn.sendMessage(m.chat, {
+            text: texto.trim(),
+            contextInfo: { ...rcanal?.contextInfo }
+          }, { quoted: m })
+        }
+        throw '[❗] No se encontraron resultados en Instagram para esa búsqueda.'
       }
 
-      const primero = resBusqueda.data[0]
-      urlReel = primero.url
-      titulo = primero.title || titulo
-      descripcion = primero.description || ''
-      urlMiniatura = primero.image
+      urlReel = reelItem.url
     }
 
-    if (!urlReel) throw '[❗] No se pudo obtener el enlace del reel.'
+    const tipo = /\baudio|mp3\b/i.test(consulta) ? 'audio' : 'video'
+    const { buffer, contentType, title, author } = await apireonBuffer('/downloader/instagram', {
+      url: urlReel,
+      type: tipo
+    })
 
-    const apiDescarga = `https://api.delirius.online/download/instagram?url=${encodeURIComponent(urlReel)}`
-    const resDescarga = await fetch(apiDescarga).then(r => r.json())
-
-    if (!resDescarga?.status || !Array.isArray(resDescarga.data) || !resDescarga.data.length) {
-      throw '[❗] No se pudo descargar el contenido de Instagram.'
+    if (tipo === 'audio' || contentType.startsWith('audio/')) {
+      await conn.sendMessage(m.chat, {
+        audio: buffer,
+        fileName: 'instagram.mp3',
+        mimetype: 'audio/mpeg',
+        contextInfo: { ...rcanal?.contextInfo }
+      }, { quoted: m })
+      return
     }
 
-    const medio = resDescarga.data[0]
-    const urlMedio = medio?.url
-
-    if (!urlMedio) throw '[❗] No se encontró la URL del video.'
-
-    let leyenda = `> *${titulo}*`
-    if (descripcion) leyenda += `\n> ${descripcion}`
+    let leyenda = `> *${title || 'Instagram Reel'}*`
+    if (author) leyenda += `\n> *Autor:* ${author}`
     leyenda += `\n> *Enlace:* ${urlReel}`
 
-    if (urlMiniatura) {
-      try {
-        const miniatura = (await conn.getFile(urlMiniatura)).data
-        await conn.sendMessage(m.chat, {
-          image: miniatura,
-          caption: leyenda,
-          contextInfo: { ...rcanal?.contextInfo }
-        }, { quoted: m })
-      } catch {}
-    }
-
-    if (medio.type === 'video') {
+    if (contentType.startsWith('image/')) {
       await conn.sendMessage(m.chat, {
-        video: { url: urlMedio },
-        fileName: 'instagram.mp4',
-        caption: urlMiniatura ? '' : leyenda,
+        image: buffer,
+        caption: leyenda,
         contextInfo: { ...rcanal?.contextInfo }
       }, { quoted: m })
     } else {
       await conn.sendMessage(m.chat, {
-        image: { url: urlMedio },
-        caption: urlMiniatura ? '' : leyenda,
+        video: buffer,
+        fileName: 'instagram.mp4',
+        mimetype: 'video/mp4',
+        caption: leyenda,
         contextInfo: { ...rcanal?.contextInfo }
       }, { quoted: m })
     }
@@ -80,7 +80,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     return conn.sendMessage(m.chat, {
       text: typeof e === 'string'
         ? e
-        : `[❗] Se produjo un error al procesar Instagram.\n> Usa *${usedPrefix}report* para informarlo.\n\n${e.message}`,
+        : `[❗] Se produjo un error al procesar Instagram.\n\n> ${e.message}`,
       contextInfo: { ...rcanal?.contextInfo }
     }, { quoted: m })
   }

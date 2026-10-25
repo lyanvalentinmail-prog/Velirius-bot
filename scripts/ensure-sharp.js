@@ -67,7 +67,7 @@ async function main() {
   if (!ok) {
     console.error('[sharp] instalación WASM falló')
     console.error('[sharp] ejecuta a mano en Termux:')
-    console.error('  cd ~/pain-bot')
+    console.error('  cd ~/Velirius-bot')
     console.error('  npm install --cpu=wasm32 sharp@0.34.1 @img/sharp-wasm32@0.34.1 --no-bin-links')
     if (isTermuxOrAndroid()) {
       console.error('[sharp] el bot arrancará, pero plugins de imagen (ocr, stickers, hd…) pueden fallar')

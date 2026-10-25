@@ -1,4 +1,4 @@
-console.log('⧉ Inicializando Pain...')
+console.log('⧉ Inicializando Velirius bot...')
 
 import { join, dirname } from 'path'
 import { createRequire } from 'module'
@@ -12,13 +12,13 @@ import cfonts from 'cfonts'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const require = createRequire(__dirname)
 
-cfonts.say('PAIN\nBOT', {
+cfonts.say('VELIRIUS\nBOT', {
   font: 'block',
   align: 'center',
   gradient: ['cyan', 'blue']
 })
 
-cfonts.say('WhatsApp Multi-Bot-Official', {
+cfonts.say('Velirius bot - WhatsApp Multi-Bot', {
   font: 'simple',
   align: 'center',
   gradient: ['blue', 'white']

@@ -1,120 +1,62 @@
-import axios from 'axios'
+import { apireonJson } from '../lib/apireon.js'
 
-let handler = async (m, { conn, text, args, usedPrefix, command }) => {
-  if (!text) {
+let handler = async (m, { conn, text, usedPrefix, command }) => {
+  if (!text?.trim()) {
     return conn.sendMessage(m.chat, {
-      text: `[❗] Uso incorrecto\n\n> *Ejemplo:*\n ${usedPrefix + command} carla`,
-      contextInfo: {
-        ...rcanal.contextInfo
-      }
+      text: `[❗] Uso incorrecto\n\n> *Ejemplo:*\n ${usedPrefix + command} usuario`,
+      contextInfo: { ...rcanal?.contextInfo }
     }, { quoted: m })
   }
 
-  const nombreUsuario = text.trim().toLowerCase()
-  
+  const nombreUsuario = text.trim().replace(/^@/, '').toLowerCase()
+
   try {
-   
-    const urlApi = `https://bytebazz-api.koyeb.app/api/busqueda/onlyfans?username=${encodeURIComponent(nombreUsuario)}&apikey=8jkh5icbf05`
-    const { data } = await axios.get(urlApi)
+    await m.react('⏳').catch(() => {})
+    const { result } = await apireonJson('/search/google', {
+      query: `site:onlyfans.com "${nombreUsuario}"`,
+      limit: 6
+    })
 
-    if (!data.status) {
-      await conn.sendMessage(m.chat, {
-        text: `[❗] No se encontró el usuario.`,
-        contextInfo: {
-          ...rcanal.contextInfo
-        }
-      }, { quoted: m })
-      return
-    }
+    const resultados = Array.isArray(result?.results) ? result.results : []
+    const enlacePerfil = `https://onlyfans.com/${encodeURIComponent(nombreUsuario)}`
 
-    const datosUsuario = data.user
-    
-   
-    const infoUsuario = ` *${datosUsuario.name}* 
-> *Nombre:* ${datosUsuario.name}
-> *Username:* @${datosUsuario.username}
-> *ID:* ${datosUsuario.id}
-> *Verificado:* ${datosUsuario.isVerified ? 'Sí ✅' : 'No ❌'}
-
-> *Descripción:*
-> ${datosUsuario.about || 'Sin descripción'}
-
-> *Estadísticas:*
-> Posts: ${datosUsuario.postsCount || 0}
-> Fotos: ${datosUsuario.photosCount || 0}
-> Videos: ${datosUsuario.videosCount || 0}
-> Audios: ${datosUsuario.audiosCount || 0}
-> Total: ${datosUsuario.mediasCount || 0}
-
-> *Información adicional:*
-> Fecha de registro: ${new Date(datosUsuario.joinDate).toLocaleDateString()}
-> Última vez visto: ${new Date(datosUsuario.lastSeen).toLocaleDateString()}
-> Contenido adulto: ${datosUsuario.isAdultContent ? 'Sí 🔞' : 'No ✅'}
-> Precio suscripción: $${datosUsuario.subscribePrice || 0}
-
-> *Enlaces:*
-> [Website] (${datosUsuario.website})`
-
-   
-    if (datosUsuario.avatar) {
-      try {
-        const respuestaAvatar = await axios.get(datosUsuario.avatar, { responseType: 'arraybuffer' })
-        const bufferAvatar = Buffer.from(respuestaAvatar.data)
-        
-        await conn.sendMessage(m.chat, {
-          image: bufferAvatar,
-          caption: infoUsuario,
-          contextInfo: {
-            ...rcanal.contextInfo
-          }
-        }, { quoted: m })
-      } catch (errorAvatar) {
-        console.error('Error descargando avatar:', errorAvatar)
-        
-       
-        await conn.sendMessage(m.chat, {
-          text: infoUsuario,
-          contextInfo: {
-            ...rcanal.contextInfo
-          }
-        }, { quoted: m })
-      }
-    } else {
-    
-      await conn.sendMessage(m.chat, {
-        text: infoUsuario,
-        contextInfo: {
-          ...rcanal.contextInfo
-        }
+    if (!resultados.length) {
+      await m.react('❌').catch(() => {})
+      return conn.sendMessage(m.chat, {
+        text: `[❗] No se encontraron referencias públicas para *@${nombreUsuario}*.\n> *Perfil directo:* ${enlacePerfil}`,
+        contextInfo: { ...rcanal?.contextInfo }
       }, { quoted: m })
     }
 
-   
-    if (datosUsuario.header) {
-      try {
-        const respuestaHeader = await axios.get(datosUsuario.header, { responseType: 'arraybuffer' })
-        const bufferHeader = Buffer.from(respuestaHeader.data)
-        
-        await conn.sendMessage(m.chat, {
-          image: bufferHeader,
-          caption: `> Su Banner de *${datosUsuario.name}*`,
-          contextInfo: {
-            ...rcanal.contextInfo
-          }
-        }, { quoted: m })
-      } catch (errorHeader) {
-        console.error('Error descargando header:', errorHeader)
-      }
+    const principal = resultados[0]
+    let cuerpo =
+      `ִֶָ☾. *OnlyFans Search — Velirius bot* ִֶָ☾.\n\n` +
+      `> *Usuario:* @${nombreUsuario}\n` +
+      `> *Título:* ${principal.title || nombreUsuario}\n` +
+      `> *Perfil:* ${principal.url || enlacePerfil}\n\n`
+
+    if (principal.description || principal.snippet) {
+      cuerpo += `> *Descripción:*\n> ${String(principal.description || principal.snippet).trim().slice(0, 260)}\n\n`
     }
 
+    if (resultados.length > 1) {
+      cuerpo += `> *Coincidencias adicionales:*\n`
+      resultados.slice(1, 5).forEach((r, idx) => {
+        cuerpo += `*${idx + 2}.* ${r.title || 'Resultado'}\n> ${r.url || ''}\n`
+      })
+    }
+
+    await conn.sendMessage(m.chat, {
+      text: cuerpo.trim(),
+      contextInfo: { ...rcanal?.contextInfo }
+    }, { quoted: m })
+    await m.react('✅').catch(() => {})
   } catch (error) {
     console.error('Error en comando onlyfans-info:', error)
-    
+    await m.react('❌').catch(() => {})
     await conn.sendMessage(m.chat, {
-      text: `[❌] Error al buscar, api caido.`,
-      contextInfo: {
-        ...rcanal.contextInfo
-      }
+      text: `[❌] Error al buscar información: ${error.message}`,
+      contextInfo: { ...rcanal?.contextInfo }
     }, { quoted: m })
   }
 }
@@ -123,4 +65,4 @@ handler.help = ['onlyfans <username>', 'of <username>', 'onlyfansinfo <username>
 handler.tags = ['búsquedas']
 handler.command = ['onlyfans', 'of', 'onlyfansinfo']
 
-export default handler 
+export default handler

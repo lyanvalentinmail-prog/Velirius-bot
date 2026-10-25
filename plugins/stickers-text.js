@@ -3,7 +3,8 @@ import path from 'path'
 import fluent from 'fluent-ffmpeg'
 import sharp from '../lib/sharp.js'
 import { addExif } from '../lib/sticker.js'
-import { resolveStickerMeta } from './stickers-sticker.js'
+import { apireonBuffer } from '../lib/apireon.js'
+import { resolveStickerMeta, toWebp, isAnimatedWebP } from './stickers-sticker.js'
 
 const SIZE = 512
 const FRAME_COUNT = 12
@@ -112,7 +113,7 @@ function calcularDiseno(texto) {
 
   tamanoFuente = Math.round(tamanoFuente * FONT_SCALE)
 
-  return { lines, fontSize }
+  return { lines: lineas, fontSize: tamanoFuente }
 }
 
 function construirSvgTexto(lineas, color, tamanoFuente) {
@@ -161,7 +162,7 @@ async function renderizarFotogramas(texto) {
     rutasFotogramas.push(rutaFotograma)
   }
 
-  return { tmpDir, framePaths }
+  return { tmpDir: dirTemp, framePaths: rutasFotogramas }
 }
 
 async function fotogramasAWebpAnimado(dirTemp) {
@@ -212,34 +213,49 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
     if (!texto) {
       return conn.sendMessage(m.chat, {
-        text: `*[❗] Escribe el texto del sticker animado o respondé a un mensaje.*\n\nEjemplos:\n> ${usedPrefix + command} Hola\n> ${usedPrefix + command} Pain Bot oficial\n> ${usedPrefix + command} línea uno\\nlínea dos\n> (respondé un mensaje con ${usedPrefix + command})`,
-        contextInfo: { ...rcanal.contextInfo }
+        text: `*[❗] Escribe el texto del sticker o respondé a un mensaje.*\n\nEjemplos:\n> ${usedPrefix + command} Hola\n> ${usedPrefix + command} Velirius bot oficial\n> ${usedPrefix + command} línea uno\\nlínea dos\n> (respondé un mensaje con ${usedPrefix + command})`,
+        contextInfo: { ...rcanal?.contextInfo }
       }, { quoted: m })
     }
 
     if (texto.length > MAX_TEXT) {
       return conn.sendMessage(m.chat, {
         text: `*[❗] Texto muy largo.* Máximo ${MAX_TEXT} caracteres (tienes ${texto.length}).`,
-        contextInfo: { ...rcanal.contextInfo }
+        contextInfo: { ...rcanal?.contextInfo }
       }, { quoted: m })
     }
 
     const { packname, author } = resolveStickerMeta(m, conn)
+    const esTtpEstatico = /^ttp$/i.test(command)
 
-    const renderizado = await renderizarFotogramas(texto)
-    dirTemp = renderizado.tmpDir
+    let webpSalida = null
+    try {
+      const rutaCanvas = esTtpEstatico ? '/canvas/ttp' : '/canvas/attp'
+      const { buffer } = await apireonBuffer(rutaCanvas, { text: texto })
+      webpSalida = await toWebp(buffer)
+    } catch {
+      const renderizado = await renderizarFotogramas(texto)
+      dirTemp = renderizado.tmpDir
+      webpSalida = await fotogramasAWebpAnimado(dirTemp)
+    }
 
-    const webpAnimado = await fotogramasAWebpAnimado(dirTemp)
-    const stickerFinal = await addExif(webpAnimado, packname, author)
+    const stickerFinal = await addExif(webpSalida, packname, author)
+    const animado = isAnimatedWebP(stickerFinal)
 
-    await conn.sendFile(m.chat, stickerFinal, 'sticker.webp', '', m, null, {
-      contextInfo: { ...rcanal.contextInfo }
-    })
+    await conn.sendMessage(
+      m.chat,
+      {
+        sticker: stickerFinal,
+        ...(animado ? { isAnimated: true } : {}),
+        contextInfo: { ...rcanal?.contextInfo }
+      },
+      { quoted: m }
+    )
   } catch (error) {
     console.error('[st] Error:', error)
     conn.sendMessage(m.chat, {
-      text: `*[❌] Error al crear sticker animado: ${error.message || 'desconocido'}*\n\nVerificá que FFmpeg esté instalado.`,
-      contextInfo: { ...rcanal.contextInfo }
+      text: `*[❌] Error al crear sticker: ${error.message || 'desconocido'}*\n\nVerificá que FFmpeg esté instalado.`,
+      contextInfo: { ...rcanal?.contextInfo }
     }, { quoted: m })
   } finally {
     limpiarDirectorio(dirTemp)
@@ -248,6 +264,6 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
 handler.help = ['#st + {texto o responder mensaje} → sticker animado con texto de colores']
 handler.tags = ['stickers']
-handler.command = ['st', 'stext', 'stickertext', 'textsticker', 'stickeranim']
+handler.command = ['st', 'stext', 'stickertext', 'textsticker', 'stickeranim', 'attp', 'ttp']
 
 export default handler

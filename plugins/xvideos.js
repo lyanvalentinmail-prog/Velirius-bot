@@ -37,7 +37,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
        const videoUrl = videoInfo.result.url
        let peso = await size(videoInfo.result.url)
 
-       const cap = `ᴠɪᴅᴇᴏ xᴠɪᴅᴇᴏs\n\n *Título:* ${videoInfo.result.title}\n *Vistas:* ${videoInfo.result.views}\n *Likes:* ${videoInfo.result.likes}\n *Peso:* ${peso}\n *Dislikes:* ${videoInfo.result.deslikes}\n *Link:* ${text}\n\n> PAIN COMMUNITY`
+       const cap = `ᴠɪᴅᴇᴏ xᴠɪᴅᴇᴏs\n\n *Título:* ${videoInfo.result.title}\n *Vistas:* ${videoInfo.result.views}\n *Likes:* ${videoInfo.result.likes}\n *Peso:* ${peso}\n *Dislikes:* ${videoInfo.result.deslikes}\n *Link:* ${text}\n\n> VELIRIUS BOT`
 
       await conn.sendMessage(m.chat, {
         video: { url: videoUrl },

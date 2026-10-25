@@ -77,7 +77,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     }
 
     const id = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
-    const dirTmp = join(tmpdir(), 'pain-tts')
+    const dirTmp = join(tmpdir(), 'velirius-tts')
     if (!existsSync(dirTmp)) await mkdir(dirTmp, { recursive: true })
 
     rutaMp3 = join(dirTmp, `tts_${id}.mp3`)

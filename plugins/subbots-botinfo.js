@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const DIR_RAIZ = join(__dirname, '..')
 const DIR_IMG = join(DIR_RAIZ, 'storage', 'img')
-const IMG_POR_DEFECTO = 'https://files.catbox.moe/iomah1.jpg'
+const IMG_POR_DEFECTO = join(DIR_IMG, 'menu3.jpg')
 
 function resolverImagenBot(rutaConfig) {
   const candidatos = ['menu2.jpg', 'menu.jpg', 'menu3.jpg']
@@ -38,7 +38,7 @@ let handler = async (m, { conn, usedPrefix }) => {
   const rutaConfig = join(DIR_RAIZ, 'Serbot', botActual, 'config.json')
   const esPrincipal = isMainBotConn(conn)
 
-  let nombreBot = global.namebot || 'PAIN BOT'
+  let nombreBot = global.namebot || 'Velirius bot'
   let imgBot = resolverImagenBot(rutaConfig)
 
   if (!esPrincipal && fs.existsSync(rutaConfig)) {
@@ -80,8 +80,8 @@ let handler = async (m, { conn, usedPrefix }) => {
     texto += `\n`
   }
 
-  texto += `ʜᴏsᴛɪɴɢ ᴏғɪᴄɪᴀʟ\n\n`
-  texto += ` *URL:* https://nexcodea.com`
+  texto += `ᴀᴘɪ ᴏғɪᴄɪᴀʟ\n\n`
+  texto += ` *URL:* https://apireon-36er.vercel.app/home`
 
   await conn.sendFile(m.chat, imgBot, 'thumbnail.jpg', texto.trim(), m, null, {
     contextInfo: {

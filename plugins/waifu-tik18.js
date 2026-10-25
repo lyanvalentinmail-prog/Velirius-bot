@@ -1,69 +1,43 @@
-import fetch from 'node-fetch'
+import { apireonBuffer, apireonJson } from '../lib/apireon.js'
 
-const API_URL = () =>
-  `${(global.APIs?.delirius?.url || 'https://api.delirius.online').replace(/\/$/, '')}/nsfw/tiktok`
+const CONSULTAS = [
+  'cosplay anime transition',
+  'aesthetic dance trend',
+  'kpop dance cover'
+]
 
 let handler = async (m, { conn }) => {
   try {
-    await conn.sendMessage(m.chat, { react: { text: '⏳', key: m.key } }).catch(() => {})
+    await m.react('⏳').catch(() => {})
+    const q = CONSULTAS[Math.floor(Math.random() * CONSULTAS.length)]
+    const { result } = await apireonJson('/search/tiktok', { query: q, limit: 12 })
+    const videos = (Array.isArray(result?.videos) ? result.videos : []).filter(v => v?.url)
 
-    const response = await fetch(API_URL(), {
-      headers: {
-        'User-Agent': 'Mozilla/5.0',
-        Accept: 'video/*,application/json'
-      }
-    })
-
-    if (!response.ok) {
-      await conn.sendMessage(m.chat, { react: { text: '❌', key: m.key } }).catch(() => {})
+    if (!videos.length) {
+      await m.react('❌').catch(() => {})
       return m.reply('*[❗] No se pudo obtener el video. Intenta de nuevo más tarde.*')
     }
 
-    const contentType = String(response.headers.get('content-type') || '')
-    let videoBuffer
-    let mimetype = 'video/mp4'
-
-    if (contentType.includes('video/')) {
-      mimetype = contentType.split(';')[0].trim() || mimetype
-      videoBuffer = Buffer.from(await response.arrayBuffer())
-    } else {
-      const data = await response.json()
-      const videoUrl =
-        data?.data?.url || data?.data?.video || data?.data?.download || data?.url || data?.video
-      if (!videoUrl) {
-        await conn.sendMessage(m.chat, { react: { text: '❌', key: m.key } }).catch(() => {})
-        return m.reply('*[❗] No se pudo obtener el video. Intenta de nuevo más tarde.*')
-      }
-      const vidRes = await fetch(videoUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } })
-      if (!vidRes.ok) {
-        await conn.sendMessage(m.chat, { react: { text: '❌', key: m.key } }).catch(() => {})
-        return m.reply('*[❗] No se pudo obtener el video. Intenta de nuevo más tarde.*')
-      }
-      mimetype = String(vidRes.headers.get('content-type') || mimetype).split(';')[0].trim() || mimetype
-      videoBuffer = Buffer.from(await vidRes.arrayBuffer())
-    }
-
-    if (!videoBuffer?.length) {
-      await conn.sendMessage(m.chat, { react: { text: '❌', key: m.key } }).catch(() => {})
-      return m.reply('*[❗] No se pudo obtener el video. Intenta de nuevo más tarde.*')
-    }
+    const elegido = videos[Math.floor(Math.random() * videos.length)]
+    const { buffer } = await apireonBuffer('/downloader/tiktok', { url: elegido.url, type: 'video' })
 
     await conn.sendMessage(
       m.chat,
       {
-        video: videoBuffer,
-        mimetype,
+        video: buffer,
+        mimetype: 'video/mp4',
         fileName: 'tik18.mp4',
-        mentions: [m.sender]
+        mentions: [m.sender],
+        contextInfo: { ...rcanal?.contextInfo }
       },
       { quoted: m }
     )
 
-    await conn.sendMessage(m.chat, { react: { text: '✅', key: m.key } }).catch(() => {})
+    await m.react('✅').catch(() => {})
   } catch (error) {
     console.error('Error en comando tik18:', error)
-    await conn.sendMessage(m.chat, { react: { text: '❌', key: m.key } }).catch(() => {})
-    m.reply('*[❗] Ocurrió un error al obtener el video. Por favor, inténtalo de nuevo más tarde.*')
+    await m.react('❌').catch(() => {})
+    m.reply('*[❗] Ocurrió un error al obtener el video. Inténtalo de nuevo más tarde.*')
   }
 }
 

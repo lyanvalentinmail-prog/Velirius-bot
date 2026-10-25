@@ -24,7 +24,7 @@ let handler = async (m, { conn, args, participants, isAdmin, isBotAdmin, isOwner
     
     if (notasUsuario.length === 0) {
       return conn.sendMessage(m.chat, {
-        text: `╭─「 📝 𝗡𝗼𝘁𝗮𝘀 𝗱𝗲 𝗨𝘀𝘂𝗮𝗿𝗶𝗼 📝 」─╮\n│\n╰➺ ✧ *Usuario:* @${quien.split('@')[0]}\n╰➺ ✧ *Notas:* 0 📝\n╰➺ ✧ *Estado:* Sin notas activas\n│\n╰➺ ✧ *Grupo:* ${nombreGrupo}\n\n> PAIN COMMUNITY`,
+        text: `╭─「 📝 𝗡𝗼𝘁𝗮𝘀 𝗱𝗲 𝗨𝘀𝘂𝗮𝗿𝗶𝗼 📝 」─╮\n│\n╰➺ ✧ *Usuario:* @${quien.split('@')[0]}\n╰➺ ✧ *Notas:* 0 📝\n╰➺ ✧ *Estado:* Sin notas activas\n│\n╰➺ ✧ *Grupo:* ${nombreGrupo}\n\n> VELIRIUS BOT`,
         contextInfo: {
           ...rcanal.contextInfo,
           mentionedJid: [quien]
@@ -45,7 +45,7 @@ let handler = async (m, { conn, args, participants, isAdmin, isBotAdmin, isOwner
       textoNotas += `   ↳ Tiempo restante: ${horasRestantes}h ${minutosRestantes}m\n`
     })
     
-    textoNotas += `│\n╰➺ ✧ *Grupo:* ${nombreGrupo}\n\n> PAIN COMMUNITY`
+    textoNotas += `│\n╰➺ ✧ *Grupo:* ${nombreGrupo}\n\n> VELIRIUS BOT`
 
     const usuariosMencionados = [quien, ...notasUsuario.map(n => n.author)]
     
@@ -63,7 +63,7 @@ let handler = async (m, { conn, args, participants, isAdmin, isBotAdmin, isOwner
 
   if (todasLasNotas.length === 0) {
     return conn.sendMessage(m.chat, {
-      text: `╭─「 📝 𝗡𝗼𝘁𝗮𝘀 𝗱𝗲𝗹 𝗚𝗿𝘂𝗽𝗼 📝 」─╮\n│\n╰➺ ✧ *Grupo:* ${nombreGrupo}\n╰➺ ✧ *Notas activas:* 0\n╰➺ ✧ *Estado:* Sin notas 📝\n│\n╰➺ ✧ *Nota:* No hay notas activas en este grupo.\n\n> PAIN COMMUNITY`,
+      text: `╭─「 📝 𝗡𝗼𝘁𝗮𝘀 𝗱𝗲𝗹 𝗚𝗿𝘂𝗽𝗼 📝 」─╮\n│\n╰➺ ✧ *Grupo:* ${nombreGrupo}\n╰➺ ✧ *Notas activas:* 0\n╰➺ ✧ *Estado:* Sin notas 📝\n│\n╰➺ ✧ *Nota:* No hay notas activas en este grupo.\n\n> VELIRIUS BOT`,
       contextInfo: {
         ...rcanal.contextInfo
       }
@@ -93,7 +93,7 @@ let handler = async (m, { conn, args, participants, isAdmin, isBotAdmin, isOwner
   }
   
   textoNotasGrupo += `│\n╰➺ ✧ *Comando:* ${usedPrefix}vernotas @usuario\n`
-  textoNotasGrupo += `╰➺ ✧ *Para ver notas de un usuario específico*\n\n> PAIN COMMUNITY`
+  textoNotasGrupo += `╰➺ ✧ *Para ver notas de un usuario específico*\n\n> VELIRIUS BOT`
 
   return conn.sendMessage(m.chat, {
     text: textoNotasGrupo,

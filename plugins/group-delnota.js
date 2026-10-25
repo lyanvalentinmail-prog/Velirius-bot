@@ -56,7 +56,7 @@ let handler = async (m, { conn, args, participants, isAdmin, isBotAdmin, isOwner
   const nombreGrupo = metadatosGrupo.subject
 
   return conn.sendMessage(m.chat, {
-    text: `╭─「 🗑️ 𝗡𝗼𝘁𝗮 𝗘𝗹𝗶𝗺𝗶𝗻𝗮𝗱𝗮 🗑️ 」─╮\n│\n╰➺ ✧ *Usuario:* @${m.sender.split('@')[0]}\n╰➺ ✧ *Nota eliminada:* ${notaEliminada.content}\n╰➺ ✧ *Autor original:* @${notaEliminada.author.split('@')[0]}\n│\n╰➺ ✧ *Grupo:* ${nombreGrupo}\n╰➺ ✧ *Estado:* Nota eliminada ✅\n\n> PAIN COMMUNITY`,
+    text: `╭─「 🗑️ 𝗡𝗼𝘁𝗮 𝗘𝗹𝗶𝗺𝗶𝗻𝗮𝗱𝗮 🗑️ 」─╮\n│\n╰➺ ✧ *Usuario:* @${m.sender.split('@')[0]}\n╰➺ ✧ *Nota eliminada:* ${notaEliminada.content}\n╰➺ ✧ *Autor original:* @${notaEliminada.author.split('@')[0]}\n│\n╰➺ ✧ *Grupo:* ${nombreGrupo}\n╰➺ ✧ *Estado:* Nota eliminada ✅\n\n> VELIRIUS BOT`,
     contextInfo: {
       ...rcanal.contextInfo,
       mentionedJid: [m.sender, notaEliminada.author]

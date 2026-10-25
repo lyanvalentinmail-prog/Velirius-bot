@@ -63,18 +63,21 @@ global.ensureTmpDir = function() {
   return PROJECT_TMP
 }
 
-global.API = (name, path = '/', query = {}, apikeyqueryname) =>
-  (name in global.APIs ? global.APIs[name] : name) +
-  path +
-  (query || apikeyqueryname
-    ? '?' +
-      new URLSearchParams(
-        Object.entries({
-          ...query,
-          ...(apikeyqueryname ? { [apikeyqueryname]: global.APIKeys[name in global.APIs ? global.APIs[name] : name] } : {}),
-        })
-      )
-    : '')
+global.API = (name, path = '/', query = {}, apikeyqueryname) => {
+  const entry = name in global.APIs ? global.APIs[name] : name
+  const baseUrl = (typeof entry === 'object' && entry !== null ? entry.url : entry) || ''
+  const apiKey =
+    (typeof entry === 'object' && entry !== null ? entry.key : null) ??
+    global.APIKeys?.[baseUrl] ??
+    null
+  const params = new URLSearchParams(
+    Object.entries({
+      ...(query || {}),
+      ...(apikeyqueryname && apiKey ? { [apikeyqueryname]: apiKey } : {}),
+    }).filter(([, v]) => v !== undefined && v !== null)
+  ).toString()
+  return String(baseUrl).replace(/\/$/, '') + path + (params ? '?' + params : '')
+}
 
 global.timestamp = { start: new Date() }
 
@@ -543,7 +546,7 @@ global.reconnectSubBots = async function() {
         })
         console.log(chalk.green(`Sub-bot ${folder} reconectado exitosamente`))
       } else {
-        console.log(chalk.red(`No se pudo importar Pain Bot para ${folder}`))
+        console.log(chalk.red(`No se pudo importar Velirius bot para ${folder}`))
       }
 
      

@@ -5,7 +5,8 @@ import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import fontkit from '@pdf-lib/fontkit'
 import { addExif } from '../lib/sticker.js'
-import { resolveStickerMeta } from './stickers-sticker.js'
+import { apireonBuffer } from '../lib/apireon.js'
+import { resolveStickerMeta, toWebp, isAnimatedWebP } from './stickers-sticker.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const RUTA_FUENTE = join(__dirname, '../lib/fonts/NotoSans-Bold.ttf')
@@ -423,10 +424,36 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     }
 
     const { packname, author } = resolveStickerMeta(m, conn)
-    const webp = await textoAStickerBrat(texto)
-    const stickerFinal = await addExif(webp, packname, author)
+    const cmd = String(command || '').toLowerCase()
+    const rutaBrat =
+      cmd === 'bratvideo' || cmd === 'bratvid'
+        ? '/canvas/bratvideo'
+        : cmd === 'bratanime'
+          ? '/canvas/bratanime'
+          : cmd === 'bratestirado'
+            ? '/canvas/bratestirado'
+            : '/canvas/brat'
 
-    await conn.sendFile(m.chat, stickerFinal, 'sticker.webp', '', m, null, global.rcanal)
+    let webp
+    try {
+      const { buffer } = await apireonBuffer(rutaBrat, { text: texto })
+      webp = await toWebp(buffer)
+    } catch {
+      webp = await textoAStickerBrat(texto)
+    }
+
+    const stickerFinal = await addExif(webp, packname, author)
+    const animado = isAnimatedWebP(stickerFinal)
+
+    await conn.sendMessage(
+      m.chat,
+      {
+        sticker: stickerFinal,
+        ...(animado ? { isAnimated: true } : {}),
+        contextInfo: { ...global.rcanal?.contextInfo }
+      },
+      { quoted: m }
+    )
   } catch (error) {
     console.error('[brat]', error)
     return conn.reply(
@@ -440,6 +467,6 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
 handler.help = ['#brat + {texto} → sticker estilo Brat (fondo blanco, texto negro borroso)']
 handler.tags = ['stickers']
-handler.command = ['brat', 'sp', 'stickerplain', 'memetext', 'bratgen']
+handler.command = ['brat', 'sp', 'stickerplain', 'memetext', 'bratgen', 'bratvideo', 'bratvid', 'bratanime', 'bratestirado']
 
 export default handler

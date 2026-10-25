@@ -1,14 +1,7 @@
-import fetch from 'node-fetch'
-
-const LIMITE_RESULTADOS = 5
-
-function recortarTexto(text = '', max = 100) {
-  const valor = String(text).replace(/\s+/g, ' ').trim()
-  if (!valor || valor === '-') return ''
-  return valor.length > max ? `${valor.slice(0, max - 1)}…` : valor
-}
+import { apireonJson, apireonAbsUrl } from '../lib/apireon.js'
 
 function formatearVistas(n) {
+  if (typeof n === 'string' && /[KMB]/i.test(n)) return n
   const v = Number(n) || 0
   if (v >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(1)}B`
   if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
@@ -20,92 +13,76 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
   try {
     if (!text?.trim()) {
       return conn.sendMessage(m.chat, {
-        text: `ִֶָ☾. Ingresa qué buscar en YouTube.\n\n> *Ejemplo:*\n${usedPrefix + command} Twice`,
+        text: `ִֶָ☾. Ingresa lo que deseas buscar en YouTube.\n\n> *Ejemplo:*\n${usedPrefix + command} its you`,
         contextInfo: { ...rcanal?.contextInfo }
       }, { quoted: m })
     }
 
-    const consulta = text.trim()
-    const urlBusqueda = `https://api.delirius.online/search/ytsearch?q=${encodeURIComponent(consulta)}`
-    const resBusqueda = await fetch(urlBusqueda).then(r => r.json())
+    const { result, baseUrl } = await apireonJson('/search/youtube', { query: text.trim(), limit: 5 })
+    const lista = Array.isArray(result?.videos) ? result.videos : []
 
-    if (!resBusqueda?.status || !Array.isArray(resBusqueda.data) || !resBusqueda.data.length) {
-      throw '[❗] No se encontraron resultados para tu búsqueda.'
+    if (!lista.length) {
+      throw '[❗] No se encontraron resultados.'
     }
 
-    const resultados = resBusqueda.data.slice(0, LIMITE_RESULTADOS)
+    const resultados = lista.slice(0, 5).map(v => ({
+      title: v.title || 'Sin título',
+      url: v.url || (v.videoId ? `https://youtu.be/${v.videoId}` : ''),
+      duration: v.duration || '—',
+      views: v.views || 0,
+      published: v.published || '',
+      author: v.channel?.name || v.authorName || v.author || 'YouTube',
+      image: apireonAbsUrl(v.thumbnail || v.image || '', baseUrl)
+    }))
 
-    let lista = `ִֶָ☾. 𝗬𝗼𝘂𝗧𝘂𝗯𝗲 ִֶָ☾.\n\n> *Búsqueda:* ${consulta}\n> *Encontrados:* ${resultados.length}\n\n`
-    resultados.forEach((elemento, i) => {
-      const canal = recortarTexto(elemento.author?.name, 40) || 'YouTube'
-      lista += `*${i + 1}.* ${recortarTexto(elemento.title, 70)}\n`
-      lista += ` 𓍯  *Canal:* ${canal}\n`
-      lista += ` 𓍯  *Duración:* ${elemento.duration || '—'}\n`
-      lista += ` 𓍯  *Vistas:* ${formatearVistas(elemento.views)}\n`
-      lista += ` 𓍯  *Publicado:* ${elemento.publishedAt || '—'}\n`
-      lista += ` 𓍯  *Enlace:* ${elemento.url}\n\n`
+    global.lastYtSearch = global.lastYtSearch || {}
+    global.lastYtSearch[m.sender] = { results: resultados, at: Date.now() }
+
+    let cuerpo = `ִֶָ☾. 𝗬𝗼𝘂𝗧𝘂𝗯𝗲 𝗦𝗲𝗮𝗿𝗰𝗵 ִֶָ☾.\n`
+    cuerpo += `> *Búsqueda:* ${text.trim()}\n\n`
+
+    resultados.forEach((v, i) => {
+      cuerpo += `*${i + 1}.* ${v.title}\n`
+      cuerpo += ` 𓍯 *Canal:* ${v.author}\n`
+      cuerpo += ` 𓍯 *Duración:* ${v.duration} · *Vistas:* ${formatearVistas(v.views)}\n`
+      if (v.published) cuerpo += ` 𓍯 *Subido:* ${v.published}\n`
+      cuerpo += ` 𓍯 *Link:* ${v.url}\n\n`
     })
-    lista += `> Descargar video:\n> ${usedPrefix}video <número>\n> ${usedPrefix}video <enlace>\n> ${usedPrefix}play <número>`
 
-    await conn.sendMessage(m.chat, {
-      text: lista.trim(),
-      contextInfo: { ...rcanal?.contextInfo }
-    }, { quoted: m })
+    cuerpo += `_Para descargar uno usa:_\n`
+    cuerpo += `> *${usedPrefix}video <número>*  o  *${usedPrefix}play <número>*`
 
-    if (!global.lastYtSearch) global.lastYtSearch = {}
-    global.lastYtSearch[m.sender] = {
-      query: consulta,
-      results: resultados.map(r => ({
-        title: r.title,
-        url: r.url || `https://youtu.be/${r.videoId}`,
-        image: r.image || r.thumbnail,
-        duration: r.duration,
-        views: r.views,
-        author: r.author?.name
-      })),
-      at: Date.now()
+    const urlMiniatura = resultados[0]?.image
+    if (urlMiniatura && /^https?:\/\//i.test(urlMiniatura)) {
+      try {
+        const miniatura = (await conn.getFile(urlMiniatura)).data
+        return await conn.sendMessage(
+          m.chat,
+          { image: miniatura, caption: cuerpo, contextInfo: { ...rcanal?.contextInfo } },
+          { quoted: m }
+        )
+      } catch {}
     }
 
-    for (let i = 0; i < resultados.length; i++) {
-      const elemento = resultados[i]
-      const canal = recortarTexto(elemento.author?.name, 40) || 'YouTube'
-      const leyenda = `*${i + 1}.* ${recortarTexto(elemento.title, 90)}
- 𓍯  *Canal:* ${canal}
- 𓍯  *Duración:* ${elemento.duration || '—'}
- 𓍯  *Vistas:* ${formatearVistas(elemento.views)}
- 𓍯  *Enlace:* ${elemento.url}
-
-> ${usedPrefix}video ${i + 1}`
-
-      const miniatura = elemento.image || elemento.thumbnail
-      if (miniatura) {
-        try {
-          const imagen = (await conn.getFile(miniatura)).data
-          await conn.sendMessage(m.chat, {
-            image: imagen,
-            caption: leyenda,
-            contextInfo: { ...rcanal?.contextInfo }
-          }, { quoted: m })
-          continue
-        } catch {}
-      }
-
-      await conn.sendMessage(m.chat, {
-        text: leyenda,
-        contextInfo: { ...rcanal?.contextInfo }
-      }, { quoted: m })
-    }
+    await conn.sendMessage(
+      m.chat,
+      { text: cuerpo, contextInfo: { ...rcanal?.contextInfo } },
+      { quoted: m }
+    )
   } catch (e) {
-    console.error('Error en búsqueda YouTube:', e)
+    console.error('Error en buscador-yt:', e)
     return conn.sendMessage(m.chat, {
-      text: typeof e === 'string' ? e : `[❗] Ocurrió un error al buscar en YouTube.\n\n${e.message}`,
+      text: typeof e === 'string'
+        ? e
+        : `[❌] Error en la búsqueda.\n\n> ${e.message}`,
       contextInfo: { ...rcanal?.contextInfo }
     }, { quoted: m })
   }
 }
 
-handler.help = ['yt <búsqueda> → 5 resultados de YouTube']
-handler.command = ['yt', 'youtube', 'ytsearch']
-handler.tags = ['descargas', 'busqueda']
+handler.help = ['yt <búsqueda>', 'yts <búsqueda>']
+handler.command = ['yt', 'yts', 'ytsearch']
+handler.tags = ['buscador']
+handler.group = true
 
 export default handler

@@ -1,140 +1,58 @@
-import fetch from 'node-fetch'
+import { apireonJson } from '../lib/apireon.js'
 
-
-async function traducirAlEspanol(text) {
-  try {
-    const respuestaApi = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=es&dt=t&q=${encodeURIComponent(text)}`)
-    const datos = await respuestaApi.json()
-    return datos[0][0][0] || text
-  } catch (error) {
-    console.error('Error traduciendo:', error)
-    return text
-  }
-}
-
-let handler = async (m, { conn, text, args, usedPrefix, command }) => {
-  if (!text) {
+let handler = async (m, { conn, text, usedPrefix, command }) => {
+  if (!text?.trim()) {
     return conn.sendMessage(m.chat, {
-      text: `BÚSQUEDA \n\n*Uso:* ${usedPrefix}google <búsqueda>\n*Ejemplo:* ${usedPrefix}google Pain\n*Ejemplo:* ${usedPrefix}google anime\n`,
-      contextInfo: {
-        ...rcanal.contextInfo
-      }
+      text: `ִֶָ☾. Ingresa lo que deseas buscar en la web.\n\n> *Ejemplo:* ${usedPrefix + command} historia de Uruguay`,
+      contextInfo: { ...rcanal?.contextInfo }
     }, { quoted: m })
   }
 
+  const consulta = text.trim()
+  await m.react('⏳').catch(() => {})
+
   try {
-    
-    const consultaBusqueda = encodeURIComponent(text)
-    const urlBusqueda = `https://api.duckduckgo.com/?q=${consultaBusqueda}&format=json&no_html=1&skip_disambig=1`
-    
-    const respuestaApi = await fetch(urlBusqueda)
-    const datos = await respuestaApi.json()
-    
-    if (!datos.AbstractText && (!datos.RelatedTopics || datos.RelatedTopics.length === 0)) {
-      await conn.sendMessage(m.chat, {
-        text: 'NO SE ENCONTRARON RESULTADOS \n\n *No se encontraron resultados*\n *Intenta con otros términos*\n',
-        contextInfo: {
-          ...rcanal.contextInfo
-        }
-      }, { quoted: m })
-      return
-    }
+    const { result } = await apireonJson('/search/google', { query: consulta, limit: 8 })
+    const resultados = Array.isArray(result?.results) ? result.results : []
 
-   
-    let textoInfo = 'RESULTADOS \n\n'
-    textoInfo += `*Búsqueda:* ${text}\n\n`
-
-  
-    if (datos.AbstractText) {
-      const textoTraducido = await traducirAlEspanol(datos.AbstractText)
-      textoInfo += '╭INFORMACIÓN \n\n'
-      textoInfo += `╰➺  *${textoTraducido}*\n`
-      if (datos.AbstractSource) {
-        textoInfo += `╰➺  *Fuente:* ${datos.AbstractSource}\n`
-      }
-      if (datos.AbstractURL) {
-        textoInfo += `╰➺  *Enlace:* ${datos.AbstractURL}\n`
-      }
-      textoInfo += '\n'
-    }
-
-    
-    if (datos.RelatedTopics && datos.RelatedTopics.length > 0) {
-      textoInfo += 'TEMAS\n\n'
-      
-      const temas = datos.RelatedTopics.slice(0, 2) 
-      for (let i = 0; i < temas.length; i++) {
-        const tema = temas[i]
-        if (tema.Text) {
-          const textoTraducido = await traducirAlEspanol(tema.Text)
-          textoInfo += `╰➺  *${i + 1}. ${textoTraducido.substring(0, 110)}${textoTraducido.length > 100 ? '...' : ''}*\n`
-          if (tema.FirstURL) {
-            textoInfo += `╰➺  *Enlace:* ${tema.FirstURL}\n\n`
-          }
-        }
-      }
-      
-      textoInfo += '\n\n'
-    }
-
-  
-    let urlImagen = null
-    if (datos.Image) {
-      urlImagen = datos.Image
-    } else if (datos.RelatedTopics && datos.RelatedTopics.length > 0) {
-    
-      for (const tema of datos.RelatedTopics) {
-        if (tema.Icon && tema.Icon.URL) {
-          urlImagen = tema.Icon.URL
-          break
-        }
-      }
-    }
-
-    
-    if (urlImagen) {
-      try {
-        await conn.sendMessage(m.chat, {
-          image: { url: urlImagen },
-          caption: textoInfo + '',
-          contextInfo: {
-            ...rcanal.contextInfo
-          }
-        }, { quoted: m })
-      } catch (errorImg) {
-        console.error('Error enviando imagen:', errorImg)
-      
-        await conn.sendMessage(m.chat, {
-          text: textoInfo + '',
-          contextInfo: {
-            ...rcanal.contextInfo
-          }
-        }, { quoted: m })
-      }
-    } else {
-    
-      await conn.sendMessage(m.chat, {
-        text: textoInfo + '',
-        contextInfo: {
-          ...rcanal.contextInfo
-        }
+    if (!resultados.length) {
+      await m.react('❌').catch(() => {})
+      return conn.sendMessage(m.chat, {
+        text: `[❗] No se encontraron resultados web para *${consulta}*.`,
+        contextInfo: { ...rcanal?.contextInfo }
       }, { quoted: m })
     }
 
-  } catch (error) {
-    console.error('Error en búsqueda de DuckDuckGo:', error)
-    
+    let cuerpo = `ִֶָ☾. *Búsqueda Web — Velirius bot* ִֶָ☾.\n`
+    cuerpo += `> *Consulta:* ${consulta}\n\n`
+
+    resultados.slice(0, 7).forEach((r, idx) => {
+      cuerpo += `*${idx + 1}. ${r.title || 'Resultado'}*\n`
+      if (r.description || r.snippet) {
+        cuerpo += `> ${String(r.description || r.snippet).trim().slice(0, 220)}\n`
+      }
+      if (r.url) cuerpo += `🔗 ${r.url}\n`
+      cuerpo += '\n'
+    })
+
     await conn.sendMessage(m.chat, {
-      text: 'ERROR\n\n*Error en la búsqueda*\n*Por favor, inténtalo más tarde*\n',
-      contextInfo: {
-        ...rcanal.contextInfo
-      }
+      text: cuerpo.trim(),
+      contextInfo: { ...rcanal?.contextInfo }
+    }, { quoted: m })
+
+    await m.react('✅').catch(() => {})
+  } catch (e) {
+    console.error('[google-search] Error:', e)
+    await m.react('❌').catch(() => {})
+    await conn.sendMessage(m.chat, {
+      text: `[❌] Error al buscar en la web.\n> ${e.message}`,
+      contextInfo: { ...rcanal?.contextInfo }
     }, { quoted: m })
   }
 }
 
-handler.help = ['#google <búsqueda>']
-handler.tags = ['búsquedas', 'internet']
-handler.command = ['google', 'g', 'buscar', 'search']
+handler.help = ['google <búsqueda>', 'buscar <búsqueda>']
+handler.tags = ['buscador']
+handler.command = ['google', 'buscar', 'g', 'search']
 
-export default handler 
+export default handler
